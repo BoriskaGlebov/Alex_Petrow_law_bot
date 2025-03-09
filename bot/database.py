@@ -1,58 +1,57 @@
 from datetime import datetime
-from functools import wraps
+from typing import Any
 
-from bot.config import database_url
-from sqlalchemy import func, TIMESTAMP, Integer, text
-from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from sqlalchemy.ext.asyncio import AsyncAttrs, async_sessionmaker, create_async_engine, AsyncSession
+from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
+from typing_extensions import Annotated
 
-engine = create_async_engine(url=database_url)
-async_session_maker = async_sessionmaker(engine, class_=AsyncSession)
+from bot.config import settings
 
+DATABASE_URL = settings.get_db_url()
+# TEST_DATABASE_URL = settings.get_test_db_url()
+# настройки БД для работы как с боевой так и с тестовой базой данных
+engine = create_async_engine(DATABASE_URL)
+# test_engine = create_async_engine(TEST_DATABASE_URL)
+async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+# async_test_session = async_sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
 
-def connection(isolation_level=None):
-    def decorator(method):
-        @wraps(method)
-        async def wrapper(*args, **kwargs):
-            async with async_session_maker() as session:
-                try:
-                    # Устанавливаем уровень изоляции, если передан
-                    if isolation_level:
-                        await session.execute(text(f"SET TRANSACTION ISOLATION LEVEL {isolation_level}"))
-
-                    # Выполняем декорированный метод
-                    return await method(*args, session=session, **kwargs)
-                except Exception as e:
-                    await session.rollback()  # Откатываем сессию при ошибке
-                    raise e  # Поднимаем исключение дальше
-                finally:
-                    await session.close()  # Закрываем сессию
-
-        return wrapper
-
-    return decorator
+# настройка аннотаций
+int_pk = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
+created_at = Annotated[datetime, mapped_column(server_default=func.now())]
+updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)]
+str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
+str_null_true = Annotated[str, mapped_column(nullable=True)]
 
 
 class Base(AsyncAttrs, DeclarativeBase):
-    __abstract__ = True  # Базовый класс будет абстрактным, чтобы не создавать отдельную таблицу для него
+    """
+    Базовый класс для всех моделей базы данных.
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    Этот класс предоставляет общие атрибуты и методы для всех моделей,
+    основанных на SQLAlchemy. Он определяет автоматические поля
+    `created_at` и `updated_at`, а также метод `to_dict`, который
+    преобразует экземпляр модели в словарь.
 
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP,
-        server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP,
-        server_default=func.now(),
-        onupdate=func.now()
-    )
+    Attributes:
+       created_at (Mapped[datetime]): Дата и время создания записи.
+       updated_at (Mapped[datetime]): Дата и время последнего обновления записи.
+    """
 
-    @classmethod
-    @property
-    def __tablename__(cls) -> str:
-        return cls.__name__.lower() + 's'
+    __abstract__ = True
 
-    def to_dict(self) -> dict:
-        # Метод для преобразования объекта в словарь
+    @declared_attr.directive
+    def __tablename__(self) -> str:
+        return f"{self.__name__.lower()}s"
+
+    created_at: Mapped[created_at]
+    updated_at: Mapped[updated_at]
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Преобразует экземпляр модели в словарь.
+
+        Возвращает:
+            dict[str, Any]: Словарь, содержащий имена колонок и их значения.
+        """
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
