@@ -11,4 +11,4 @@ class UserModel(TelegramIDModel):
     username: str | None
     first_name: str | None
     last_name: str | None
-    referral_id: str | None
+    referral_id: int | None

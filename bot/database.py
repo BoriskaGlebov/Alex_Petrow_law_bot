@@ -1,4 +1,5 @@
 from datetime import datetime
+from functools import wraps
 from typing import Any
 
 from sqlalchemy import func
@@ -22,6 +23,44 @@ created_at = Annotated[datetime, mapped_column(server_default=func.now())]
 updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)]
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 str_null_true = Annotated[str, mapped_column(nullable=True)]
+
+
+def connection(isolation_level: str = None):
+    """
+    Декоратор для автоматического управления сессией базы данных.
+
+    !Когда стоит указывать уровень изоляции вручную?
+    -READ COMMITTED (по умолчанию) — для большинства CRUD-операций.
+    -REPEATABLE READ — для сложных аналитических запросов или, например, расчёта рейтинга.
+    -SERIALIZABLE — если нужна полная защита от конкурентных изменений (финансы, бухгалтерия).
+    ТО есть можно поставить вообще по умолчанию READ COMMITED, но посмотрим
+    Args:
+        isolation_level (str, optional): Уровень изоляции транзакции (например, "SERIALIZABLE").
+
+    Returns:
+        function: Декорированная асинхронная функция с доступом к сессии.
+    """
+
+    def decorator(method):
+        @wraps(method)
+        async def wrapper(*args, **kwargs):
+            async with async_session() as session:
+                try:
+                    # Устанавливаем уровень изоляции, если передан
+                    if isolation_level:
+                        await session.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level}")
+
+                    # Передаём сессию в декорированный метод
+                    return await method(*args, session=session, **kwargs)
+                except Exception as e:
+                    await session.rollback()  # Откат транзакции при ошибке
+                    raise e
+                finally:
+                    await session.close()  # Закрываем сессию после использования
+
+        return wrapper
+
+    return decorator
 
 
 class Base(AsyncAttrs, DeclarativeBase):
