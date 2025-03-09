@@ -2,10 +2,10 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 
 from bot.config import bot
 
-# Список команд для бота с их описаниями
+# Список команд для бота с их описаниями маленькими буквами
 commands = [
     BotCommand(command='start', description='Старт'),
-    BotCommand(command='FAQ', description="Ответы на часто задаваемые вопросы!"),
+    BotCommand(command='faq', description='Ответы на часто задаваемые вопросы!'),
     BotCommand(command='help', description='Описание функций')
 ]
 

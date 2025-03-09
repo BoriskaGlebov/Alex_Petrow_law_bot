@@ -9,6 +9,7 @@ from alembic import context
 
 from bot.database import Base
 from bot.users.models import User
+from bot.faq.models import Questions
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

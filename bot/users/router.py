@@ -4,6 +4,7 @@ from aiogram.types import Message
 from aiogram.dispatcher.router import Router
 from bot.database import connection
 from bot.users.dao import UserDAO
+from bot.users.keyboards.markup_kb import main_kb
 from bot.users.schemas import TelegramIDModel, UserModel
 from bot.users.utils import get_refer_id_or_none
 
@@ -39,7 +40,7 @@ async def cmd_start(message: Message, command: CommandObject, session, **kwargs)
 
         # Если пользователь уже существует, отправляем приветственное сообщение
         if user_info:
-            await message.answer(f"👋 Привет, {message.from_user.full_name}! Выберите необходимое действие")
+            await message.answer(f"👋 Привет, {message.from_user.full_name}! Выберите необходимое действие",reply_markup=main_kb(user_id))
             return
 
         # Определяем реферальный ID, если он был передан в аргументах команды
@@ -58,7 +59,7 @@ async def cmd_start(message: Message, command: CommandObject, session, **kwargs)
         msg = f"🎉 <b>Благодарим за регистрацию!{ref_message}</b>."
 
         # Отправляем сообщение пользователю
-        await message.answer(msg)
+        await message.answer(msg,reply_markup=main_kb(user_id))
 
     except Exception as e:
         # Логируем ошибку, если она возникла
