@@ -1,15 +1,27 @@
-def get_refer_id_or_none(command_args: str, user_id: int) -> int | None:
-    """
-    Определяет реферальный ID из аргументов команды. Возвращает реферальный ID, если он валиден, или None,
-    если аргументы не соответствуют требованиям (например, если это не число или это ID самого пользователя).
+from bot.faq.models import Questions
 
-    Args:
-        command_args (str): Аргументы команды, содержащие потенциальный реферальный ID.
-        user_id (int): ID текущего пользователя, чтобы убедиться, что он не пытается использовать свой собственный ID в качестве реферала.
 
-    Returns:
-        int | None: Если аргумент команды является валидным реферальным ID (целое число, больше 0 и не равное user_id),
-                    то возвращается этот ID. Иначе возвращается None.
+def update_cache(old_questions: dict[int, Questions], new_questions: dict[int, Questions]) -> dict[int, Questions]:
     """
-    return int(command_args) if command_args and command_args.isdigit() and int(command_args) > 0 and int(
-        command_args) != user_id else None
+    Обновляет кеш вопросов, заменяя старые данные новыми.
+
+    Алгоритм работы:
+    1. Если `new_questions` не пуст, обновляет `old_questions` новыми данными.
+    2. Добавляет новые или изменённые записи из `new_questions`.
+    3. Удаляет записи, которых нет в `new_questions`, но они присутствуют в `old_questions`.
+    4. Если `new_questions` пуст, возвращает `old_questions` без изменений.
+
+    :param old_questions: Текущий кеш вопросов (словарь {id: Questions}).
+    :param new_questions: Новый набор вопросов для обновления (словарь {id: Questions}).
+    :return: Обновлённый кеш с актуальными вопросами.
+    """
+    if new_questions:
+        old_keys = list(old_questions.keys())
+
+        old_questions.update(new_questions)  # Обновляем кеш новыми вопросами
+        for key in old_keys:  # Удаляем вопросы, которых нет в новом наборе
+            if key not in new_questions:
+                del old_questions[key]
+        return old_questions
+    else:
+        return old_questions

@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.storage.redis import RedisStorage
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -23,6 +24,8 @@ class Settings(BaseSettings):
         BOT_TOKEN (str): Токен Telegram-бота.
         ADMIN_IDS (List[int]): Список ID администраторов бота.
         BASE_DIR (Optional[str]): Базовая директория проекта (опционально).
+        REDIS_LOGIN: str : Логин для Redis.
+        REDIS_PASSWORD: SecretStr : Пароль для Redis.
 
     Методы:
         get_db_url() -> str: Возвращает URL для подключения к базе данных.
@@ -37,6 +40,11 @@ class Settings(BaseSettings):
     ADMIN_IDS: List[int]
 
     BASE_DIR: Optional[str] = None
+
+    REDIS_LOGIN: str
+    REDIS_PASSWORD: SecretStr
+    REDIS_HOST: str
+    NUM_DB: int
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
     )
@@ -52,13 +60,27 @@ class Settings(BaseSettings):
             f"{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
         )
 
+    def get_redis_url(self) -> str:
+        """
+        Получает URL для Redis базы данных.
+
+        :return: URL базы данных в формате строки.
+        """
+        return (
+            f"redis://{self.REDIS_LOGIN}:{self.REDIS_PASSWORD.get_secret_value()}@{self.REDIS_HOST}:6379/{self.NUM_DB}"
+        )
+
 
 # Получаем параметры для загрузки переменных среды
 settings = Settings()
+# Хранилище FSM
+print(settings.get_redis_url())
+storage = RedisStorage.from_url(settings.get_redis_url())
 
 # Инициализируем бота и диспетчер
 bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher(storage=MemoryStorage())
+# dp = Dispatcher(storage=MemoryStorage())
+dp = Dispatcher(storage=storage)
 admins = settings.ADMIN_IDS
 
 

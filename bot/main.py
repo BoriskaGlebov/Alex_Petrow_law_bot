@@ -1,7 +1,10 @@
 import asyncio
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
+
+from bot.application_form.router import application_form_router
 from bot.config import bot, admins, dp
+from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
 from bot.users.router import user_router
@@ -55,8 +58,10 @@ async def main():
     """
     # регистрация роутеров
     dp.include_router(user_router)
+    dp.include_router(application_form_router)
     dp.include_router(faq_router)
     dp.include_router(help_router)
+    dp.include_router(echo_router)
 
     # регистрация функций
     dp.startup.register(start_bot)

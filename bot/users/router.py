@@ -1,4 +1,5 @@
 from aiogram.filters import CommandObject, CommandStart
+from aiogram.fsm.context import FSMContext
 from loguru import logger
 from aiogram.types import Message
 from aiogram.dispatcher.router import Router
@@ -13,7 +14,7 @@ user_router = Router()
 
 @user_router.message(CommandStart())
 @connection()
-async def cmd_start(message: Message, command: CommandObject, session, **kwargs) -> None:
+async def cmd_start(message: Message, command: CommandObject, session, state: FSMContext, **kwargs) -> None:
     """
     Обработчик команды /start для Telegram-бота. Проверяет, существует ли пользователь в базе данных,
     и если нет — регистрирует нового пользователя, привязывая его к реферальному ID (если он передан).
@@ -22,6 +23,7 @@ async def cmd_start(message: Message, command: CommandObject, session, **kwargs)
         message (Message): Сообщение, которое пользователь отправил боту.
         command (CommandObject): Объект, содержащий информацию о команде и ее аргументах.
         session: Сессия для работы с базой данных.
+        state (FSMContext): Состояние машины состояний, обнуляется для предотвращения ошибок пользователя.
         **kwargs: Дополнительные аргументы, которые могут быть переданы через декоратор.
 
     Returns:
@@ -31,6 +33,7 @@ async def cmd_start(message: Message, command: CommandObject, session, **kwargs)
         Exception: Если при обработке команды возникает ошибка, она будет зафиксирована в логе.
     """
     try:
+        await state.clear()
         # Получаем ID пользователя из сообщения
         user_id = message.from_user.id
 
@@ -40,7 +43,8 @@ async def cmd_start(message: Message, command: CommandObject, session, **kwargs)
 
         # Если пользователь уже существует, отправляем приветственное сообщение
         if user_info:
-            await message.answer(f"👋 Привет, {message.from_user.full_name}! Выберите необходимое действие",reply_markup=main_kb(user_id))
+            await message.answer(f"👋 Привет, {message.from_user.full_name}! Выберите необходимое действие",
+                                 reply_markup=main_kb(user_id))
             return
 
         # Определяем реферальный ID, если он был передан в аргументах команды
@@ -59,7 +63,7 @@ async def cmd_start(message: Message, command: CommandObject, session, **kwargs)
         msg = f"🎉 <b>Благодарим за регистрацию!{ref_message}</b>."
 
         # Отправляем сообщение пользователю
-        await message.answer(msg,reply_markup=main_kb(user_id))
+        await message.answer(msg, reply_markup=main_kb(user_id))
 
     except Exception as e:
         # Логируем ошибку, если она возникла

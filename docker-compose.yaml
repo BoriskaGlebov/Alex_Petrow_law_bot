@@ -22,7 +22,7 @@ services:
     command: >
       sh -c "
         docker-entrypoint.sh postgres &
-        until pg_isready -U ${DB_USER}; do sleep 1; done;
+        until pg_isready -U ${DB_USER} -d ${DB_NAME}; do sleep 1; done;
         wait"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
@@ -36,6 +36,34 @@ services:
           memory: 512M
         reservations:
           memory: 256M
+    networks:
+      - monitoring_net
+
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    restart: always
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD} # Еще нужно явно указать пароль в config
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $REDIS_PASSWORD ping"]
+#      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 128M
     networks:
       - monitoring_net
 
@@ -94,6 +122,8 @@ services:
 volumes:
   pg_data:
     name: diploma_db
+  redis_data:
+    name: redis_data
 #  static_files1:
 #    name: static_files1
 #  static_files2:

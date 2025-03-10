@@ -4,9 +4,10 @@ from bot.config import bot
 
 # Список команд для бота с их описаниями маленькими буквами
 commands = [
-    BotCommand(command='start', description='Старт'),
-    BotCommand(command='faq', description='Ответы на часто задаваемые вопросы!'),
-    BotCommand(command='help', description='Описание функций')
+    BotCommand(command='start', description=' 🏎  Старт работы с приложением'),
+    BotCommand(command='application', description=' 📝  Создание заявки на оказание услуги'),
+    BotCommand(command='faq', description=' 🗂  Ответы на часто задаваемые вопросы!'),
+    BotCommand(command='help', description=' ⁉️  Описание функций')
 ]
 
 
