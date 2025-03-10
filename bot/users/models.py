@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger
 from typing import Optional
 from bot.database import Base, int_pk
@@ -48,3 +48,5 @@ class User(Base):
     Идентификатор реферала пользователя.
     Тип: Optional[int] (необязательное поле)
     """
+    # Двусторонняя связь с Application
+    applications = relationship("Application", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
