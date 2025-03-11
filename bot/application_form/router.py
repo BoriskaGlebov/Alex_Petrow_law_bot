@@ -25,6 +25,7 @@ from bot.application_form.schemas import PhotoModelSchema, VideoModelSchema, \
 from bot.config import bot, settings
 from bot.database import connection, async_session
 from bot.application_form.utils import extract_number
+from bot.other_handler.router import OtherHandler
 from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import main_kb, phone_kb
@@ -150,7 +151,7 @@ async def approve_work_callback(call: CallbackQuery, state: FSMContext) -> None:
                 await state.set_state(ApplicationForm.owner)
         else:
             # Если пользователь не подтвердил, предлагаем текстовую заявку
-            await state.set_state(ApplicationForm.text_application)
+            await state.set_state(OtherHandler.other_question)
             await bot.send_message(chat_id=call.message.chat.id,
                                    text="Чем бы мы могли вам в таком случае помочь?")
             # TODO Тут можно зарегистрировать заявку на другую услугу, если необходимо

@@ -12,6 +12,7 @@ from bot.database import async_session
 from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
+from bot.other_handler.router import other_router
 from bot.users.dao import UserDAO
 from bot.users.router import user_router
 from bot.users.schemas import TelegramIDModel
@@ -67,7 +68,9 @@ async def main():
     dp.include_router(help_router)
     dp.include_router(faq_router)
     dp.include_router(user_router)
+    dp.include_router(other_router)
     dp.include_router(application_form_router)
+
     dp.include_router(admin_router)
     dp.include_router(echo_router)
 

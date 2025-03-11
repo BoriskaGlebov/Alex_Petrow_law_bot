@@ -32,6 +32,7 @@ class Application(Base):
         Enum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )  # Статус заявки
 
+    text_application: Mapped[str] = mapped_column(String, nullable=True)
     # Связь с пользователем
     user = relationship("User", back_populates="applications", lazy="selectin")
 
