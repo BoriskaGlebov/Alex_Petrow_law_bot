@@ -10,8 +10,7 @@ from alembic import context
 from bot.database import Base
 from bot.users.models import User
 from bot.faq.models import Questions
-from bot.application_form.models import Application
-from bot.application_form.models import MediaFile
+from bot.application_form.models import ApplicationStatus,Application, Photo, Video, BankDebt
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -27,6 +26,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

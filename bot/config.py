@@ -74,7 +74,6 @@ class Settings(BaseSettings):
 # Получаем параметры для загрузки переменных среды
 settings = Settings()
 # Хранилище FSM
-print(settings.get_redis_url())
 storage = RedisStorage.from_url(settings.get_redis_url())
 
 # Инициализируем бота и диспетчер
@@ -150,7 +149,7 @@ logger.add(
     catch=True,
     backtrace=True,
     diagnose=True,
-    filter=filename_filter,
+    # filter=filename_filter,
     enqueue=True,
 )
 

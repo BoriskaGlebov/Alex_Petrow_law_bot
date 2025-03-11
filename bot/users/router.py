@@ -68,7 +68,8 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
         # Если пользователь уже существует, отправляем приветственное сообщение
         if user_info:
             async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-                await message.answer(f"👋 Привет, {message.from_user.full_name}! Необходимо ответить на пару вопросов:",reply_markup=ReplyKeyboardRemove())
+                await message.answer(f"👋 Привет, {message.from_user.full_name}! Необходимо ответить на пару вопросов:",
+                                     reply_markup=ReplyKeyboardRemove())
                 await asyncio.sleep(2)
                 await message.answer(msg4, reply_markup=approve_keyboard("Да", "Нет"))
                 await state.set_state(CheckForm.age)
@@ -125,9 +126,13 @@ async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
     """
     try:
         await call.answer(text="Проверяю ввод", show_alert=False)
+
         approve_inf = call.data.replace('approve_', '')
         approve_inf = True if approve_inf == "True" else False
-
+        await call.message.delete()
+        # # Удаляем клавиатуру и сообщение о возрасте
+        # await call.message.edit_text("Спасибо за ответ. Проверяю данные...")
+        # await call.message.edit_reply_markup(reply_markup=None)
         if approve_inf:
             await state.update_data(age=approve_inf)
             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
@@ -167,7 +172,7 @@ async def resident_callback(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer(text="Проверяю ввод", show_alert=False)
         approve_inf = call.data.replace('approve_', '')
         approve_inf = True if approve_inf == "True" else False
-
+        await call.message.delete()
         if approve_inf:
             await state.update_data(age=approve_inf)
             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):

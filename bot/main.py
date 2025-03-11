@@ -2,12 +2,18 @@ import asyncio
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
 
+from bot.application_form.dao import ApplicationDAO
+from bot.application_form.models import Application, ApplicationStatus
 from bot.application_form.router import application_form_router
+
 from bot.config import bot, admins, dp
+from bot.database import async_session
 from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
+from bot.users.dao import UserDAO
 from bot.users.router import user_router
+from bot.users.schemas import TelegramIDModel
 from bot.utils.commands import set_commands, commands
 from bot.utils.set_description_file import set_description
 
@@ -57,10 +63,10 @@ async def main():
     запускает бота с использованием long polling для получения обновлений.
     """
     # регистрация роутеров
+    dp.include_router(help_router)
+    dp.include_router(faq_router)
     dp.include_router(user_router)
     dp.include_router(application_form_router)
-    dp.include_router(faq_router)
-    dp.include_router(help_router)
     dp.include_router(echo_router)
 
     # регистрация функций
@@ -77,3 +83,23 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    # async def test_add_application():
+    #     async with async_session() as session:
+    #         # Создаем Pydantic-модель
+    #         user=TelegramIDModel(telegram_id=439653349)
+    #         user=await UserDAO.find_one_or_none(session=session,filters=user)
+    #         print(f"Я вытащил пользователя {user.username}")
+    #         if user.applications:
+    #             print(f"у пользователя заявки {user.applications[-1].id}")
+    #             print(f"у пользователя заявки {user.applications[-1]}")
+    #             print(f"медиа по последней заявке {user.applications[-1].photos[0].file_id}")
+    #             print(f"медиа по последней заявке {user.applications[-1].videos}")
+    #             print(f"медиа по последней заявке {user.applications[-1].debts[0].bank_name}")
+    #             print(type(user.applications[-1]))
+    #             # s= await  ApplicationDAO.delete(session=session,filters=user.applications[-1].to_dict())
+    # #
+    # #
+    # #
+    # asyncio.run(test_add_application())
+
+#

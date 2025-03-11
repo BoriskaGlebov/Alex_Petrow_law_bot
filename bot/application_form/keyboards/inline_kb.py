@@ -10,9 +10,9 @@ def admin_keyboard() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def approve_keyboard() -> InlineKeyboardMarkup:
+def owner_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text='✅Все верно', callback_data=f'approve_True')
-    builder.button(text='❌ Нет, напишу 👇', callback_data=f'approve_False')
+    builder.button(text='❎ Cобственные средства', callback_data=f'owner_True')
+    builder.button(text='❎ Средства клиенты', callback_data=f'owner_False')
     builder.adjust(2)
     return builder.as_markup()

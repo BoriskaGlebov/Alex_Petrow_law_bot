@@ -34,14 +34,14 @@ def faq_inline_keyboard(questions: list[Questions]) -> InlineKeyboardMarkup:
     ))
 
     # Создаем правила распределения кнопок по строкам
-    buttons_rule = [2 for _ in questions[::2]]  # Каждые две кнопки в строке
+    # buttons_rule = [2 for _ in questions[::2]]  # Каждые две кнопки в строке
 
     # Если количество кнопок нечетное, последняя строка будет с одной кнопкой
-    if len(questions) % 2 != 0:
-        buttons_rule[-1] = 1
+    # if len(questions) % 2 != 0:
+    #     buttons_rule[-1] = 1
 
     # Добавляем строку для кнопок
-    buttons_rule.append(1)  # Для кнопки "На главную"
-    builder.adjust(*buttons_rule)
-
+    # buttons_rule.append(1)  # Для кнопки "На главную"
+    # builder.adjust(*buttons_rule)
+    builder.adjust(1)
     return builder.as_markup()

@@ -1,5 +1,6 @@
 # TODO Пока нет точного понимания команд и описания будет так , потом для админ панели будут доп сообщения
 from aiogram.filters import CommandObject, CommandStart, Command
+from aiogram.fsm.context import FSMContext
 from loguru import logger
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.dispatcher.router import Router
@@ -13,7 +14,7 @@ help_router = Router()
 
 
 @help_router.message(Command('help'))
-async def help_cmd(message: Message) -> None:
+async def help_cmd(message: Message, state: FSMContext) -> None:
     """
     Обрабатывает команду /help и отправляет пользователю список доступных команд.
 
@@ -45,7 +46,7 @@ async def help_cmd(message: Message) -> None:
 
     # Формируем список текстов с командами
     text = [f'{el.command} - {el.description}' for el in commands]
-
+    await state.clear()
     # Отправка ответа с перечислением команд
     await message.answer(text='\n'.join(text), reply_markup=ReplyKeyboardRemove())
 

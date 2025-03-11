@@ -17,7 +17,7 @@ class User(Base):
         referral_id (Optional[int]): Идентификатор реферала пользователя (необязательное поле).
     """
 
-    id: Mapped[int_pk]  # Уникальный идентификатор пользователя (первичный ключ).
+    id: Mapped[int_pk]  # Уникальный идентификатор (первичный ключ).
 
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     """

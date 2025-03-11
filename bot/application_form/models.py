@@ -1,11 +1,11 @@
+from sqlalchemy import Enum, ForeignKey, Integer, String, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, ForeignKey, String, Text, Enum
-from typing import Optional
-from bot.database import Base, int_pk
-import enum
+
+from bot.database import Base, int_pk, async_session
+from enum import Enum as PyEnum
 
 
-class ApplicationStatus(enum.Enum):
+class ApplicationStatus(PyEnum):
     PENDING = "pending"  # Ожидает обработки
     APPROVED = "approved"  # Одобрена
     REJECTED = "rejected"  # Отклонена
@@ -14,48 +14,83 @@ class ApplicationStatus(enum.Enum):
 class Application(Base):
     """
     Модель заявки, содержащая информацию о заявке пользователя.
-
     Атрибуты:
         id (int): Уникальный идентификатор заявки (первичный ключ).
         user_id (int): Идентификатор пользователя (внешний ключ, связь с User).
-        text_application (str): Текст заявки.
-        media_id (Optional[int]): Ссылка на медиафайлы (внешний ключ на MediaFiles).
         status (ApplicationStatus): Статус заявки (по умолчанию "pending").
+        photos (List[int]): Список ID фотографий.
+        videos (List[int]): Список ID видео.
+        debts (List['BankDebt']): Список задолженностей в разных банках.
     """
 
     id: Mapped[int_pk]  # Уникальный идентификатор заявки (первичный ключ).
 
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id"), nullable=False, unique=True
-    )  # ID пользователя
-    contact_name:Mapped[str]=mapped_column(String,nullable=True)
-    text_application: Mapped[str] = mapped_column(Text, nullable=False)  # Текст заявки
-
-    # media_id: Mapped[Optional[int]] = mapped_column(
-    #     ForeignKey("mediafiles.id"), nullable=True
-    # )  # ID медиафайлов
-
+        BigInteger, ForeignKey("users.id",ondelete="CASCADE"), nullable=False
+    )  # ID пользователя (связь с User)
     status: Mapped[ApplicationStatus] = mapped_column(
         Enum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )  # Статус заявки
 
-    # Связь с пользователем и медиафайлами
+    # Связь с пользователем
     user = relationship("User", back_populates="applications")
-    media = relationship("MediaFile", back_populates="applications", lazy="joined")
+
+    # Связь с фотографиями и видео
+    photos = relationship("Photo", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
+    videos = relationship("Video", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
+
+    # Связь с задолженностями в банках
+    debts = relationship("BankDebt", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
 
 
-class MediaFile(Base):
+class Photo(Base):
     """
-    Модель для хранения медиафайлов пользователей.
-
+    Модель для хранения фотографий пользователей.
     Атрибуты:
         id (int): Уникальный идентификатор записи (первичный ключ).
-        file_id (str): Уникальный идентификатор файла в Telegram.
-        application_id (int): ID заявки, к которой привязан файл.
+        file_id (str): Уникальный идентификатор фотографии в Telegram.
+        application_id (int): ID заявки, к которой привязана фотография.
     """
 
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
-    file_id: Mapped[str] = mapped_column(String, nullable=False, unique=True)  # ID файла в Telegram
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id"), nullable=False)  # ID заявки
+    file_id: Mapped[str] = mapped_column(String, nullable=False, unique=False)  # ID файла в Telegram
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id",ondelete="CASCADE"), nullable=False)  # ID заявки
+
     # Связь с заявкой
-    application = relationship("Application", back_populates="media")
+    application = relationship("Application", back_populates="photos")
+
+
+class Video(Base):
+    """
+    Модель для хранения видео пользователей.
+    Атрибуты:
+        id (int): Уникальный идентификатор записи (первичный ключ).
+        file_id (str): Уникальный идентификатор видео в Telegram.
+        application_id (int): ID заявки, к которой привязано видео.
+    """
+
+    id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
+    file_id: Mapped[str] = mapped_column(String, nullable=False, unique=False)  # ID файла в Telegram
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id",ondelete="CASCADE"), nullable=False)  # ID заявки
+
+    # Связь с заявкой
+    application = relationship("Application", back_populates="videos")
+
+
+class BankDebt(Base):
+    """
+    Модель для хранения информации о задолженности в банке.
+    Атрибуты:
+        id (int): Уникальный идентификатор записи (первичный ключ).
+        bank_name (str): Название банка.
+        total_amount (float): Общая сумма задолженности в банке.
+        application_id (int): ID заявки, к которой привязана задолженность.
+    """
+
+    id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
+    bank_name: Mapped[str] = mapped_column(String, nullable=False)  # Название банка
+    total_amount: Mapped[float] = mapped_column(BigInteger, nullable=False)  # Сумма задолженности
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id",ondelete="CASCADE"), nullable=False)  # ID заявки
+
+    # Связь с заявкой
+    application = relationship("Application", back_populates="debts")

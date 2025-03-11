@@ -11,7 +11,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.router import Router
 from sqlalchemy.util import merge_lists_w_ordering
 
-from bot.application_form.keyboards.inline_kb import approve_keyboard
 from bot.config import bot
 from bot.database import connection
 from bot.application_form.utils import extract_number
@@ -48,8 +47,9 @@ async def echo_start(message: Message, **kwargs) -> None:
     """
     try:
         await message.answer(
-            "Видимо пошло что-то не так. Я скоро разберусь!\nЯ пока не знаю как ответить на ваш запрос!"
+            "Видимо пошло что-то не так. Я  🤖  скоро разберусь!\n Я пока не знаю как ответить на ваш запрос!"
         )
+        await message.answer("А пока вы можете попробовать выбрать команду 📲 в списке Меню")
     except Exception as e:
         # Логируем ошибку, если она возникла
         logger.error(f"Ошибка при выполнении команды /application для пользователя {message.from_user.id}: {e}")

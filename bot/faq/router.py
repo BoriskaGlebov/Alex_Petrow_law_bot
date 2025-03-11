@@ -1,6 +1,7 @@
 from aiogram import F
 from aiogram.filters import CommandObject, CommandStart, Command
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 from loguru import logger
 from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.router import Router
@@ -19,6 +20,10 @@ from bot.users.utils import get_refer_id_or_none
 faq_router = Router()
 # Глобальный кэш для хранения вопросов и ответов
 questions_cache = {}
+
+
+class Answering(StatesGroup):
+    check = State()
 
 
 # Обработчик команды '/faq' и текстового сообщения 'База знаний'
@@ -55,6 +60,7 @@ async def faq_start(message: Message, session, state: FSMContext, **kwargs) -> N
 
         # Отправляем пользователю сообщение с вопросами и кнопками
         await message.answer("Частые вопросы:", reply_markup=faq_inline_keyboard(list(questions_cache.values())))
+        await state.set_state(Answering.check)
 
     except Exception as e:
         # Логируем ошибку
@@ -63,7 +69,7 @@ async def faq_start(message: Message, session, state: FSMContext, **kwargs) -> N
 
 
 # Обработчик для получения ответа на выбранный вопрос
-@faq_router.callback_query(F.data.startswith('qst_'))
+@faq_router.callback_query(F.data.startswith('qst_'), Answering.check)
 async def faq_callback(call: CallbackQuery) -> None:
     """
     Обработчик коллбек-запроса для выбора ответа на вопрос из списка.
@@ -112,8 +118,8 @@ async def faq_callback(call: CallbackQuery) -> None:
 
 
 # Обработчик для перехода назад в основное меню
-@faq_router.callback_query(F.data.startswith('back_home'))
-async def faq_main_menu(call: CallbackQuery) -> None:
+@faq_router.callback_query(F.data.startswith('back_home'), Answering.check)
+async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
     """
     Обработчик коллбек-запроса для перехода назад в главное меню.
 
@@ -121,6 +127,7 @@ async def faq_main_menu(call: CallbackQuery) -> None:
 
     Args:
         call (CallbackQuery): Коллбек-запрос от пользователя.
+        state (FSMContext): Это машина состояний для работы.
 
     Returns:
         None: Функция не возвращает значений, но отправляет сообщение с основным меню.
@@ -132,3 +139,4 @@ async def faq_main_menu(call: CallbackQuery) -> None:
 
     # Отправляем сообщение с основным меню
     await call.message.answer("Выберите один из пунктов меню 👇", reply_markup=main_kb())
+    await state.clear()

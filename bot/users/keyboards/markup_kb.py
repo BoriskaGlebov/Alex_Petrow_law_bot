@@ -11,7 +11,7 @@ def back_keyboard() -> ReplyKeyboardMarkup:
     return kb.as_markup(resize_keyboard=True)
 
 
-def main_kb(user_telegram_id: int=None) -> ReplyKeyboardMarkup:
+def main_kb(user_telegram_id: int = None) -> ReplyKeyboardMarkup:
     """
     Формирует клавиатуру для главного меню бота.
 
@@ -33,9 +33,9 @@ def main_kb(user_telegram_id: int=None) -> ReplyKeyboardMarkup:
     """
     # Список кнопок на главной клавиатуре
     kb_list = [
-        [KeyboardButton(text="📖 База знаний"),
-         KeyboardButton(text="📝 Создать заявку"),
-         ],
+        [KeyboardButton(text="📝 Вывод заблокированных средств")],
+        [KeyboardButton(text="📖 База знаний")],
+
         # Закомментировано, можно добавить в зависимости от потребностей
         # [KeyboardButton(text="👤 Профиль"),
         #  KeyboardButton(text="📚 Каталог")]
