@@ -86,6 +86,55 @@ class ApplicationDAO(BaseDAO[Application]):
             logger.error(f"Ошибка при удалении записей: {e}")
             raise e
 
+    @classmethod
+    async def update(cls, session: AsyncSession, filters: dict, values: dict) -> int:
+        """
+        Обновляет записи в таблице заявок (или в других связанных моделях),
+        которые соответствуют заданным фильтрам.
+
+        Этот метод используется для массового обновления записей в базе данных
+        на основе фильтров, предоставленных в виде словаря, и установки новых значений для выбранных столбцов.
+
+        Аргументы:
+            session (AsyncSession): Сессия для взаимодействия с базой данных. Используется для выполнения запросов и коммитов.
+            filters (dict): Словарь, содержащий фильтры, по которым будут обновляться записи.
+                            Пример: {'status': 'pending', 'user_id': 123}.
+            values (dict): Словарь, содержащий новые значения, которые будут применены к записям,
+                           соответствующим фильтрам. Пример: {'status': 'approved'}.
+
+        Возвращает:
+            int: Количество обновленных записей, если операция успешна.
+
+        Исключения:
+            SQLAlchemyError: Если произошла ошибка при обновлении записи, операция откатывается,
+                             и ошибка будет залогирована и передана выше.
+        """
+        filter_dict = filters
+        values_dict = values
+
+        logger.info(f"Обновление записей в {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}")
+
+        # Формируем запрос для обновления
+        query = (
+            sqlalchemy_update(cls.model)
+            .where(*[getattr(cls.model, k) == v for k, v in filter_dict.items()])  # Применяем фильтры
+            .values(**values_dict)  # Устанавливаем новые значения
+            .execution_options(synchronize_session="fetch")  # Обновляем с синхронизацией сессии
+        )
+
+        try:
+            # Выполняем запрос и коммитим изменения
+            result = await session.execute(query)
+            await session.commit()
+            logger.info(f"Обновлено {result.rowcount} записей.")
+            return result.rowcount
+
+        except SQLAlchemyError as e:
+            # В случае ошибки откатываем транзакцию и логируем ошибку
+            await session.rollback()
+            logger.error(f"Ошибка при обновлении записей: {e}")
+            raise e
+
 
 class PhotoDAO(BaseDAO[Photo]):
     """

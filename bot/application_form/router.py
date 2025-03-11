@@ -16,6 +16,7 @@ from aiogram.dispatcher.router import Router
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.util import merge_lists_w_ordering
 
+from bot.admins.keyboards.inline_kb import approve_admin_keyboard
 from bot.application_form.dao import ApplicationDAO, VideoDAO, BankDebtDAO, PhotoDAO
 from bot.application_form.keyboards.inline_kb import owner_keyboard
 from bot.application_form.models import Application, Video, BankDebt, ApplicationStatus
@@ -26,9 +27,9 @@ from bot.database import connection, async_session
 from bot.application_form.utils import extract_number
 from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
-from bot.users.keyboards.markup_kb import main_kb
-from bot.users.schemas import TelegramIDModel, UserModel
-from bot.users.utils import get_refer_id_or_none
+from bot.users.keyboards.markup_kb import main_kb, phone_kb
+from bot.users.schemas import TelegramIDModel, UserModel, UpdateNumberSchema
+from bot.users.utils import get_refer_id_or_none, normalize_phone_number
 
 application_form_router = Router()
 
@@ -50,7 +51,8 @@ class ApplicationForm(StatesGroup):
 
 # @application_form_router.message(Command('application'))
 @application_form_router.message(F.text.contains('Вывод заблокированных средств'))
-async def application_form_start(message: Message, state: FSMContext, **kwargs) -> None:
+@connection()
+async def application_form_start(message: Message, state: FSMContext, session, **kwargs) -> None:
     """
     Обработчик команды, запускающий процесс подачи заявки на вывод заблокированных средств.
     Отправляет пользователю сообщение с предложением оставить заявку и ожидает ответа.
@@ -67,15 +69,29 @@ async def application_form_start(message: Message, state: FSMContext, **kwargs) 
         Exception: Если при выполнении команды возникает ошибка, она будет зафиксирована в логе и отправлено сообщение о проблемах.
     """
     try:
-        # Отправка сообщения с предложением оставить заявку
-        async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-            await asyncio.sleep(2)
-            await message.answer(
-                'Вы хотите оставить 📝 заявку на вывод заблокированных средств?',
-                reply_markup=approve_keyboard("Да", "Нет")  # Предлагаем клавиатуру с вариантами
-            )
-            # Устанавливаем состояние для машины состояний
-            await state.set_state(ApplicationForm.approve_work)
+        user_inf = await UserDAO.find_one_or_none(session=session,
+                                                  filters=TelegramIDModel(telegram_id=message.from_user.id))
+        if user_inf.phone_number:
+            # Отправка сообщения с предложением оставить заявку
+            async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
+                await asyncio.sleep(2)
+                await message.answer(
+                    'Вы хотите оставить 📝 заявку на вывод заблокированных средств?',
+                    reply_markup=approve_keyboard("Да", "Нет")  # Предлагаем клавиатуру с вариантами
+                )
+                # Устанавливаем состояние для машины состояний
+                await state.set_state(ApplicationForm.approve_work)
+        else:
+            async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
+                await asyncio.sleep(2)
+                await message.answer(
+                    'Прежде чем мы начнем необходимо оставить номер '
+                    'телефона для оформления заявки и обратной связи.\n'
+                    'Нажмите кнопку ниже или ввдете номер телфона вручную\n'
+                    ' - +7XXXXXXXXXX\n'
+                    ' - 8XXXXXXXXXX ',
+                    reply_markup=phone_kb()  # Предлагаем клавиатуру с вариантами
+                )
     except Exception as e:
         # Логируем ошибку, если она возникла
         logger.error(f"Ошибка при выполнении команды /application для пользователя {message.from_user.id}: {e}")
@@ -758,6 +774,7 @@ async def approve_form_callback(
                 for debt in last_appl.debts:
                     response_message += f"🔸 Банк: <b>{debt.bank_name}</b>, Сумма задолженности: <b>{debt.total_amount}</b> руб.\n"
 
+            response_message += f"\n\n <b>{user_applications.phone_number}</b> \n\n"
             response_message += "\n\n Берете заявку в работу?"
 
             media: List[InputMedia] = []  # Список для хранения медиа файлов
@@ -774,7 +791,10 @@ async def approve_form_callback(
 
             # Отправляем медиа группу (фото/видео) и информацию администратору
             await bot.send_media_group(chat_id=settings.ADMIN_IDS[0], media=media)
-            await bot.send_message(chat_id=settings.ADMIN_IDS[0], text=response_message)
+            await bot.send_message(chat_id=settings.ADMIN_IDS[0],
+                                   text=response_message,
+                                   reply_markup=approve_admin_keyboard("Берем", "Отказ", call.from_user.id,
+                                                                       last_appl.id))
 
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение
@@ -790,6 +810,52 @@ async def approve_form_callback(
         # Логируем ошибку и отправляем пользователю сообщение о сбое
         logger.error(f"Ошибка при обработке запроса: {e}")
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
+
+
+@application_form_router.message(lambda message: message.contact is not None or message.text is not None)
+@connection()
+async def handle_contact(message: Message, state: FSMContext, session) -> None:
+    """
+    Обрабатывает получение номера телефона пользователя.
+    Поддерживает как кнопку запроса номера, так и ввод вручную.
+
+    Требует корректный номер в формате +7XXXXXXXXXX или 8XXXXXXXXXX.
+    """
+
+    user_id = message.from_user.id
+
+    if message.contact:  # Если номер пришел через кнопку
+        phone_number = message.contact.phone_number
+    else:  # Если пользователь ввел номер вручную
+        phone_number = message.text.strip()
+        # Проверяем корректность номера
+        phone_pattern = re.compile(r"^(\+7|8)?\d{10}$")  # Разрешает +7XXXXXXXXXX или 8XXXXXXXXXX
+        if not phone_pattern.match(phone_number):
+            await message.answer(
+                "Ошибка: введите корректный номер телефона в формате +7XXXXXXXXXX или 8XXXXXXXXXX.",
+                reply_markup=phone_kb()
+            )
+            return
+
+    # Нормализуем номер (добавляем +7, если надо)
+    normalized_phone = normalize_phone_number(phone_number)
+
+    # Проверяем, есть ли пользователь в БД
+    existing_user = await UserDAO.find_one_or_none(session=session, filters=TelegramIDModel(telegram_id=user_id))
+
+    if existing_user:
+        await UserDAO.update(filters=TelegramIDModel(telegram_id=user_id),
+                             values=UpdateNumberSchema(phone_number=normalized_phone),
+                             session=session)
+        await message.answer(f"Спасибо! Ваш номер {normalized_phone} сохранен.", reply_markup=ReplyKeyboardRemove())
+
+        await message.answer(
+            'Вы хотите оставить 📝 заявку на вывод заблокированных средств?',
+            reply_markup=approve_keyboard("Да", "Нет")  # Предлагаем клавиатуру с вариантами
+        )
+        await state.set_state(ApplicationForm.approve_work)
+    else:
+        await message.answer("Ошибка: ваш аккаунт не найден в базе данных.")
 
 
 @application_form_router.message(F.text, ApplicationForm.approve_work)

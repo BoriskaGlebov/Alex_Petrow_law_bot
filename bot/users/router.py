@@ -15,9 +15,9 @@ from bot.config import bot, settings
 from bot.database import connection
 from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
-from bot.users.keyboards.markup_kb import main_kb
-from bot.users.schemas import TelegramIDModel, UserModel
-from bot.users.utils import get_refer_id_or_none
+from bot.users.keyboards.markup_kb import main_kb, phone_kb
+from bot.users.schemas import TelegramIDModel, UserModel, UpdateNumberSchema
+from bot.users.utils import get_refer_id_or_none, normalize_phone_number
 
 user_router = Router()
 
@@ -66,7 +66,7 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
                                                    filters=TelegramIDModel(telegram_id=user_id))
 
         # Если пользователь уже существует, отправляем приветственное сообщение
-        if user_info:
+        if user_info and user_info.phone_number:
             async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
                 await message.answer(f"👋 Привет, {message.from_user.full_name}! Необходимо ответить на пару вопросов:",
                                      reply_markup=ReplyKeyboardRemove())
@@ -74,7 +74,6 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
                 await message.answer(msg4, reply_markup=approve_keyboard("Да", "Нет"))
                 await state.set_state(CheckForm.age)
             return
-
         # Определяем реферальный ID, если он был передан в аргументах команды
         ref_id: Optional[int] = get_refer_id_or_none(command_args=command.args, user_id=user_id)
 
@@ -105,6 +104,77 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
         # Логируем ошибку, если она возникла
         logger.error(f"Ошибка при выполнении команды /start для пользователя {message.from_user.id}: {e}")
         await message.answer("Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.")
+
+
+# @user_router.message(lambda message: message.contact is not None)
+# @connection()
+# async def handle_contact(message: Message, state: FSMContext, session) -> None:
+#     """
+#     Обрабатывает получение номера телефона пользователя.
+#
+#     Args:
+#         message (Message): Сообщение с контактной информацией.
+#         state (FSMContext): Контекст состояния FSM.
+#     """
+#     contact = message.contact
+#     user_id = message.from_user.id
+#     phone_number = contact.phone_number
+#     phone_number = normalize_phone_number(phone_number)
+#
+#     # Сохранение номера в БД
+#     existing_user = await UserDAO.find_one_or_none(filters=TelegramIDModel(telegram_id=user_id), session=session)
+#
+#     if existing_user:
+#         await UserDAO.update(filters=TelegramIDModel(telegram_id=user_id),
+#                              values=UpdateNumberSchema(phone_number=phone_number), session=session)
+#     else:
+#         return
+#
+#         # Ответ пользователю
+#
+#     async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
+#         await asyncio.sleep(2)
+#         await message.answer(
+#             f"Спасибо! Ваш номер {phone_number} сохранен. Мы свяжемся с вами при необходимости.",
+#             reply_markup=ReplyKeyboardRemove()
+#         )
+#         msg4 = f"Вам уже исполнилось 🔞 18 лет? "
+#         await message.answer(msg4, reply_markup=approve_keyboard("Да", "Нет"))
+#         await state.set_state(CheckForm.age)
+
+
+#
+# @dp.message(lambda message: message.contact is None)  # Пользователь отправил текст вместо контакта
+# async def handle_manual_phone(message: Message) -> None:
+#     """
+#     Обрабатывает случай, когда пользователь вводит номер вручную.
+#
+#     Args:
+#         message (Message): Сообщение пользователя.
+#     """
+#     user_id = message.from_user.id
+#     phone_number = message.text.strip()
+#
+#     # Проверяем номер на соответствие формату
+#     if not PHONE_REGEX.match(phone_number):
+#         await message.answer(
+#             "Похоже, вы ввели неверный номер телефона. Пожалуйста, используйте формат +7XXXXXXXXXX или 8XXXXXXXXXX."
+#         )
+#         return
+#
+#     # Сохранение номера в БД
+#     existing_user = await UserDAO.find_one_or_none(filters=TelegramIDModel(telegram_id=user_id))
+#
+#     if existing_user:
+#         await UserDAO.update(filters={"telegram_id": user_id}, values={"phone_number": phone_number})
+#     else:
+#         return
+#
+#     # Ответ пользователю
+#     await message.answer(
+#         f"Спасибо! Ваш номер {phone_number} сохранен. Мы свяжемся с вами при необходимости.",
+#         reply_markup=ReplyKeyboardRemove()
+#     )
 
 
 @user_router.callback_query(F.data.startswith('approve_'), CheckForm.age)

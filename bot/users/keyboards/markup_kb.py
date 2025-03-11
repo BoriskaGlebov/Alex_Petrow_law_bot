@@ -48,3 +48,18 @@ def main_kb(user_telegram_id: int = None) -> ReplyKeyboardMarkup:
     # Создаем и возвращаем клавиатуру с параметрами
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True)
     return keyboard
+
+
+def phone_kb() -> ReplyKeyboardMarkup:
+    """
+    Создает клавиатуру с кнопкой для запроса номера телефона.
+
+    Returns:
+        ReplyKeyboardMarkup: Клавиатура с кнопкой запроса номера.
+    """
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📞 Поделиться номером", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+        input_field_placeholder="Нажмите кнопку ниже, чтобы отправить номер телефона"
+    )

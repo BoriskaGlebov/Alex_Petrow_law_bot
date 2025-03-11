@@ -26,14 +26,14 @@ class Application(Base):
     id: Mapped[int_pk]  # Уникальный идентификатор заявки (первичный ключ).
 
     user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id",ondelete="CASCADE"), nullable=False
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )  # ID пользователя (связь с User)
     status: Mapped[ApplicationStatus] = mapped_column(
         Enum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
     )  # Статус заявки
 
     # Связь с пользователем
-    user = relationship("User", back_populates="applications")
+    user = relationship("User", back_populates="applications", lazy="selectin")
 
     # Связь с фотографиями и видео
     photos = relationship("Photo", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
@@ -54,7 +54,8 @@ class Photo(Base):
 
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
     file_id: Mapped[str] = mapped_column(String, nullable=False, unique=False)  # ID файла в Telegram
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id",ondelete="CASCADE"), nullable=False)  # ID заявки
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"),
+                                                nullable=False)  # ID заявки
 
     # Связь с заявкой
     application = relationship("Application", back_populates="photos")
@@ -71,7 +72,8 @@ class Video(Base):
 
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
     file_id: Mapped[str] = mapped_column(String, nullable=False, unique=False)  # ID файла в Telegram
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id",ondelete="CASCADE"), nullable=False)  # ID заявки
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"),
+                                                nullable=False)  # ID заявки
 
     # Связь с заявкой
     application = relationship("Application", back_populates="videos")
@@ -90,7 +92,8 @@ class BankDebt(Base):
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
     bank_name: Mapped[str] = mapped_column(String, nullable=False)  # Название банка
     total_amount: Mapped[float] = mapped_column(BigInteger, nullable=False)  # Сумма задолженности
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id",ondelete="CASCADE"), nullable=False)  # ID заявки
+    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"),
+                                                nullable=False)  # ID заявки
 
     # Связь с заявкой
     application = relationship("Application", back_populates="debts")

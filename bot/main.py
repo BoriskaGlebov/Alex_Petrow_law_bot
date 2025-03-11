@@ -2,6 +2,7 @@ import asyncio
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
 
+from bot.admins.router import admin_router
 from bot.application_form.dao import ApplicationDAO
 from bot.application_form.models import Application, ApplicationStatus
 from bot.application_form.router import application_form_router
@@ -67,6 +68,7 @@ async def main():
     dp.include_router(faq_router)
     dp.include_router(user_router)
     dp.include_router(application_form_router)
+    dp.include_router(admin_router)
     dp.include_router(echo_router)
 
     # регистрация функций
@@ -86,17 +88,20 @@ if __name__ == "__main__":
     # async def test_add_application():
     #     async with async_session() as session:
     #         # Создаем Pydantic-модель
-    #         user=TelegramIDModel(telegram_id=439653349)
-    #         user=await UserDAO.find_one_or_none(session=session,filters=user)
-    #         print(f"Я вытащил пользователя {user.username}")
-    #         if user.applications:
-    #             print(f"у пользователя заявки {user.applications[-1].id}")
-    #             print(f"у пользователя заявки {user.applications[-1]}")
-    #             print(f"медиа по последней заявке {user.applications[-1].photos[0].file_id}")
-    #             print(f"медиа по последней заявке {user.applications[-1].videos}")
-    #             print(f"медиа по последней заявке {user.applications[-1].debts[0].bank_name}")
-    #             print(type(user.applications[-1]))
-    #             # s= await  ApplicationDAO.delete(session=session,filters=user.applications[-1].to_dict())
+    #         # user=TelegramIDModel(telegram_id=439653349)
+    #         # user=await UserDAO.find_one_or_none(session=session,filters=user)
+    #         # print(f"Я вытащил пользователя {user.username}")
+    #         # if user.applications:
+    #         #     print(f"у пользователя заявки {user.applications[-1].id}")
+    #         #     print(f"у пользователя заявки {user.applications[-1]}")
+    #         #     print(f"медиа по последней заявке {user.applications[-1].photos[0].file_id}")
+    #         #     print(f"медиа по последней заявке {user.applications[-1].videos}")
+    #         #     print(f"медиа по последней заявке {user.applications[-1].debts[0].bank_name}")
+    #         #     print(type(user.applications[-1]))
+    #         #     # s= await  ApplicationDAO.delete(session=session,filters=user.applications[-1].to_dict())
+    #
+    #         await ApplicationDAO.update(session=session, filters={'id': 29},
+    #                                     values={'status': ApplicationStatus("approved")})
     # #
     # #
     # #

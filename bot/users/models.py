@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger
+from sqlalchemy import BigInteger, String
 from typing import Optional
 from bot.database import Base, int_pk
 
@@ -15,6 +15,7 @@ class User(Base):
         first_name (Optional[str]): Имя пользователя (необязательное поле).
         last_name (Optional[str]): Фамилия пользователя (необязательное поле).
         referral_id (Optional[int]): Идентификатор реферала пользователя (необязательное поле).
+        phone_number (Optional[str]): Номер телефона пользователя (необязательное поле).
     """
 
     id: Mapped[int_pk]  # Уникальный идентификатор (первичный ключ).
@@ -48,5 +49,13 @@ class User(Base):
     Идентификатор реферала пользователя.
     Тип: Optional[int] (необязательное поле)
     """
+
+    # Номер телефона пользователя (необязательное поле)
+    phone_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    """
+    Номер телефона пользователя.
+    Тип: Optional[str] (необязательное поле, длина 20 символов для хранения телефонного номера)
+    """
+
     # Двусторонняя связь с Application
     applications = relationship("Application", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
