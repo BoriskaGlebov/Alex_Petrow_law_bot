@@ -3,12 +3,10 @@ from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
 
 from bot.admins.router import admin_router
-from bot.application_form.dao import ApplicationDAO
-from bot.application_form.models import Application, ApplicationStatus
+
 from bot.application_form.router import application_form_router
 
 from bot.config import bot, admins, dp
-from bot.database import async_session
 from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
