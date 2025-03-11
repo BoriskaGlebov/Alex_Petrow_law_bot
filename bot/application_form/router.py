@@ -202,9 +202,55 @@ async def owner_callback(call: CallbackQuery, state: FSMContext) -> None:
             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
                 await asyncio.sleep(2)
                 await bot.send_message(chat_id=call.message.chat.id,
-                                       text='У вас есть возможность связаться 📬 с вашим клиентом?')
+                                       text='Для оформления заявки нужно буудет прислать видео согласие вашего клиента.')
+                await asyncio.sleep(2)
+                await bot.send_message(chat_id=call.message.chat.id,
+                                       text='У вас есть возможность связаться 📬 с вашим клиентом?',
+                                       reply_markup=approve_keyboard("ДА", "Нет"))
                 # Переход к следующему состоянию для загрузки фото
                 await state.set_state(ApplicationForm.can_contact)
+
+    except Exception as e:
+        # Логируем ошибку
+        logger.error(f"Ошибка при обработке запроса: {e}")
+        # Отправляем пользователю сообщение об ошибке
+        await call.message.answer("Произошла ошибка. Попробуйте снова.")
+
+
+@application_form_router.callback_query(F.data.startswith('approve_'), ApplicationForm.can_contact)
+async def can_contact_callback(call: CallbackQuery, state: FSMContext) -> None:
+    """
+
+    """
+    try:
+        # Ответ на callback запрос
+        await call.answer(text="Проверяю ввод", show_alert=False)
+        await call.message.delete()
+        # Обработка данных из callback_data
+        can_contact_inf = call.data.replace('approve_', '')
+        can_contact_inf = True if can_contact_inf == "True" else False
+
+        # Обновление данных в контексте состояния
+        await state.update_data(can_contact=can_contact_inf)
+        if can_contact_inf:
+            # Отправка сообщения с инструкциями по приложению фото паспорта
+            async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
+                await asyncio.sleep(2)
+                await bot.send_message(chat_id=call.message.chat.id,
+                                       text='Приложите фото 2-3 страниц паспорта и фото 📸 страницы с адресом регистрации.')
+                # Переход к следующему состоянию для загрузки фото
+                await state.set_state(ApplicationForm.photo)
+        else:
+            async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
+                await asyncio.sleep(2)
+                await bot.send_message(chat_id=call.message.chat.id,
+                                       text='Для оформления заявки нужно будет прислать видео согласие вашего клиента.')
+                await asyncio.sleep(2)
+                await bot.send_message(chat_id=call.message.chat.id,
+                                       text='Как только у вас появится возможность связаться с пользователем приходите снова',
+                                       reply_markup=ReplyKeyboardRemove())
+                # Переход к следующему состоянию для загрузки фото
+                await state.clear()
 
     except Exception as e:
         # Логируем ошибку

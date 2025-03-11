@@ -66,7 +66,7 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
                                                    filters=TelegramIDModel(telegram_id=user_id))
 
         # Если пользователь уже существует, отправляем приветственное сообщение
-        if user_info and user_info.phone_number:
+        if user_info:
             async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
                 await message.answer(f"👋 Привет, {message.from_user.full_name}! Необходимо ответить на пару вопросов:",
                                      reply_markup=ReplyKeyboardRemove())
