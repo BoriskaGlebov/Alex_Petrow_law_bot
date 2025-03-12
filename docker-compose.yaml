@@ -73,12 +73,12 @@ services:
       dockerfile: Dockerfile  # Имя Dockerfile, если отличается от стандартного
     container_name: bot
     restart: always
-#    environment:
-#      - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}  # Добавьте переменные окружения для бота
-#      - DB_USER=${DB_USER}
-#      - DB_PASSWORD=${DB_PASSWORD}
-#      - DB_NAME=${DB_NAME}
-#      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    #    environment:
+    #      - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}  # Добавьте переменные окружения для бота
+    #      - DB_USER=${DB_USER}
+    #      - DB_PASSWORD=${DB_PASSWORD}
+    #      - DB_NAME=${DB_NAME}
+    #      - REDIS_PASSWORD=${REDIS_PASSWORD}
     ports:
       - "8000:8000"  # Если у вас используется HTTP сервер (например, FastAPI)
     depends_on:
@@ -89,7 +89,7 @@ services:
 
 volumes:
   pg_data:
-    name: diploma_db
+    name: bot_db
   redis_data:
     name: redis_data
 
@@ -97,3 +97,4 @@ volumes:
 networks:
   monitoring_net:
     name: monitoring_net
+    external: true
