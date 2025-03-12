@@ -816,7 +816,6 @@ async def approve_form_callback(
                 logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
                 pass
 
-
             response_message: str = (
                 f"Заявка № {last_appl.id}\n\nСтатус заявки: 🟡 {last_appl.status.value}\n\n"
             )
@@ -842,11 +841,11 @@ async def approve_form_callback(
                 for video in last_appl.videos:
                     media.append(InputMediaVideo(type='video', media=video.file_id))
 
-            # Отправляем медиа группу (фото/видео) и информацию администратору
-            await bot.send_media_group(chat_id=settings.ADMIN_IDS[0], media=media)
             # Отправляем информацию о заявке администратору
             try:
                 for admin_id in settings.ADMIN_IDS:
+                    # Отправляем медиа группу (фото/видео) и информацию администратору
+                    await bot.send_media_group(chat_id=admin_id, media=media)
                     await bot.send_message(chat_id=admin_id,
                                            text=response_message,
                                            reply_markup=approve_admin_keyboard("Берем", "Отказ", call.from_user.id,
