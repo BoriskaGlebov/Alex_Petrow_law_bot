@@ -1,5 +1,9 @@
+import json
+
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from loguru import logger
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.dispatcher.router import Router
@@ -48,9 +52,23 @@ async def admin_application_callback(call: CallbackQuery, session) -> None:
 
             response_message += f"\n\n <b>{application.user.phone_number}</b> \n\n"
             response_message += "\n\n Берете заявку в работу?"
+            # Десериализуем JSON-строку в словарь
+            admin_message_ids = application.admin_message_ids
+            if admin_message_ids:
+                for admin_id, msg_id in admin_message_ids.items():
+                    try:
+                        await bot.edit_message_text(
+                            chat_id=admin_id,
+                            message_id=msg_id,
+                            text=response_message,
+                            reply_markup=approve_admin_keyboard("Берем", "Отказ", user_id, application_id)
+                        )
+                    except Exception as e:
+                        logger.error(f"Ошибка при обновлении сообщения у админа {admin_id}: {e}")
 
-            await call.message.edit_text(response_message,
-                                         reply_markup=approve_admin_keyboard('Берем', 'Отказ', user_id, application_id))
+            # await call.message.edit_text(response_message,
+            #                              reply_markup=approve_admin_keyboard('Берем', 'Отказ', user_id, application_id))
+
             await bot.send_message(chat_id=call.from_user.id,
                                    text="Вот ты что-то выбрал как админ а у пользователя ничего")
             await bot.send_message(chat_id=user_id,
@@ -71,8 +89,21 @@ async def admin_application_callback(call: CallbackQuery, session) -> None:
             response_message += f"\n\n <b>{application.user.phone_number}</b> \n\n"
             response_message += "\n\n Берете заявку в работу?"
 
-            await call.message.edit_text(response_message,
-                                         reply_markup=approve_admin_keyboard('Берем', 'Отказ', user_id, application_id))
+            admin_message_ids = application.admin_message_ids
+            if admin_message_ids:
+                for admin_id, msg_id in admin_message_ids.items():
+                    try:
+                        await bot.edit_message_text(
+                            chat_id=admin_id,
+                            message_id=msg_id,
+                            text=response_message,
+                            reply_markup=approve_admin_keyboard("Берем", "Отказ", user_id, application_id)
+                        )
+                    except Exception as e:
+                        logger.error(f"Ошибка при обновлении сообщения у админа {admin_id}: {e}")
+
+            # await call.message.edit_text(response_message,
+            #                              reply_markup=approve_admin_keyboard('Берем', 'Отказ', user_id, application_id))
             await bot.send_message(chat_id=call.from_user.id,
                                    text="Вот ты чтото выбрал как админ а у пользователя ничего")
             await bot.send_message(chat_id=user_id, text=f"Статус заказа поменялcя на 🔴 {application.status.value} ")

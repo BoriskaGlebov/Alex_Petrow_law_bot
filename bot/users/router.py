@@ -2,7 +2,7 @@ import asyncio
 from typing import Optional
 
 from aiogram import F
-from aiogram.filters import CommandObject, CommandStart
+from aiogram.filters import CommandObject, CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.chat_action import ChatActionSender
@@ -25,6 +25,21 @@ user_router = Router()
 class CheckForm(StatesGroup):
     age = State()
     resident = State()
+
+
+# Обработчик команды '/faq' и текстового сообщения 'База знаний'
+@user_router.message(Command('admin'))
+async def admin_start(message: Message, state: FSMContext, **kwargs) -> None:
+    """
+    """
+    try:
+        await  state.clear()
+        await message.answer("Ожидаю заявки как Администратор")
+
+    except Exception as e:
+        # Логируем ошибку
+        logger.error(f"Ошибка при выполнении команды /faq: {e}")
+        await message.answer("Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.")
 
 
 @user_router.message(CommandStart())

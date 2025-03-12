@@ -14,7 +14,7 @@ from bot.other_handler.router import other_router
 from bot.users.dao import UserDAO
 from bot.users.router import user_router
 from bot.users.schemas import TelegramIDModel
-from bot.utils.commands import set_commands, commands
+from bot.utils.commands import  set_bot_commands
 from bot.utils.set_description_file import set_description
 
 
@@ -27,7 +27,9 @@ async def start_bot():
     устанавливает описание с помощью `set_description()`,
     а также отправляет сообщение администраторам, информируя их о запуске бота.
     """
-    await set_commands(commands_list=commands)
+    # await set_commands(commands_list=commands)
+    await set_bot_commands()
+    #
     await set_description(bot=bot)
     for admin_id in admins:
         try:

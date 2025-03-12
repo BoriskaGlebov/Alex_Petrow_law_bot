@@ -1,33 +1,28 @@
-from aiogram.types import BotCommand, BotCommandScopeDefault
+from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeChat
+from bot.config import bot, settings  # Убедись, что settings.ADMIN_IDS содержит ID админов
 
-from bot.config import bot
-
-# Список команд для бота с их описаниями маленькими буквами
-commands = [
-    BotCommand(command='start', description=' 🏎  Старт работы с приложением'),
-    # BotCommand(command='application', description=' 📝  Создание заявки на вывод заблокированных средств'),
-    BotCommand(command='faq', description=' 🗂  Ответы на часто задаваемые вопросы!'),
-    BotCommand(command='help', description=' ⁉️  Описание функций')
+# Команды для обычных пользователей
+user_commands = [
+    BotCommand(command='start', description='🏎  Старт работы с приложением'),
+    BotCommand(command='faq', description='🗂  Ответы на часто задаваемые вопросы!'),
+    BotCommand(command='help', description='⁉️  Описание функций')
 ]
 
+# Команды для администраторов
+admin_commands = [
+    BotCommand(command='start', description='🏎  Старт работы с приложением'),
+    BotCommand(command='admin', description='🏎  Админ, жду заявки'),
+    BotCommand(command='faq', description='🗂  Ответы на часто задаваемые вопросы!'),
+    BotCommand(command='help', description='⁉️  Описание функций'),
+]
 
-async def set_commands(commands_list: list[BotCommand]) -> None:
+async def set_bot_commands() -> None:
     """
-    Настроить командное меню для бота.
-
-    Эта функция устанавливает список команд, которые будут доступны всем пользователям бота.
-    Команды устанавливаются с помощью метода `set_my_commands` API бота.
-
-    Параметры:
-    - `commands` (list[BotCommand]): Список объектов `BotCommand`, представляющих команды и их описания.
-
-    Возвращаемое значение:
-    - None: Функция ничего не возвращает.
-
-    Пример использования:
-    ```
-    commands = [BotCommand(command='start', description='Старт')]
-    await set_commands(commands)
-    ```
+    Устанавливает команды для пользователей и администраторов.
     """
-    await bot.set_my_commands(commands_list, BotCommandScopeDefault())
+    # Устанавливаем команды по умолчанию для всех (обычные пользователи)
+    await bot.set_my_commands(user_commands, scope=BotCommandScopeDefault())
+
+    # Устанавливаем команды для администраторов
+    for admin_id in settings.ADMIN_IDS:
+        await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=admin_id))

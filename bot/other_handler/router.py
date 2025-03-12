@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Optional
 
 from aiogram import F
@@ -85,6 +86,7 @@ async def approve_form_callback(
         Обрабатываются все исключения с выводом ошибки в лог.
     """
     try:
+        admin_message_ids = {}
         # Ответ на запрос для предотвращения уведомлений
         await call.answer(text="Проверяю ввод", show_alert=False)
 
@@ -122,6 +124,17 @@ async def approve_form_callback(
                 text=f'Была создана заявка {last_appl.id}, Это сообщение для админа',
                 reply_markup=ReplyKeyboardRemove()
             )
+            # Отправляем информацию о заявке администратору
+            try:
+                for admin_id in settings.ADMIN_IDS:
+                    await bot.send_message(
+                        chat_id=admin_id,
+                        text=f'Была создана заявка {last_appl.id}, Это сообщение для админа',
+                        reply_markup=ReplyKeyboardRemove()
+                    )
+            except Exception as e:
+                logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
+                pass
 
             response_message: str = (
                 f"Заявка № {last_appl.id}\n\nСтатус заявки: 🟡 {last_appl.status.value}\n\n"
@@ -133,10 +146,25 @@ async def approve_form_callback(
             response_message += "\n\n Берете заявку в работу?"
 
             # Отправляем медиа группу (фото/видео) и информацию администратору
-            await bot.send_message(chat_id=settings.ADMIN_IDS[0],
-                                   text=response_message,
-                                   reply_markup=approve_admin_keyboard("Берем", "Отказ", call.from_user.id,
-                                                                       last_appl.id))
+
+            # Отправляем информацию о заявке администратору
+            try:
+                for admin_id in settings.ADMIN_IDS:
+                    message = await bot.send_message(chat_id=admin_id,
+                                                     text=response_message,
+                                                     reply_markup=approve_admin_keyboard("Берем", "Отказ",
+                                                                                         call.from_user.id,
+                                                                                         last_appl.id))
+                    admin_message_ids[admin_id] = message.message_id  # Сохраняем message_id
+
+                await ApplicationDAO.update(
+                    session=session,
+                    filters={"id": last_appl.id},
+                    values={"admin_message_ids": admin_message_ids}
+                )
+            except Exception as e:
+                logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
+                pass
 
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение
