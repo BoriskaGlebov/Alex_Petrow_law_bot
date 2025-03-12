@@ -805,11 +805,17 @@ async def approve_form_callback(
                 )
 
             # Отправляем информацию о заявке администратору
-            await bot.send_message(
-                chat_id=settings.ADMIN_IDS[0],
-                text=f'Была создана заявка {last_appl.id}, Это сообщение для админа',
-                reply_markup=ReplyKeyboardRemove()
-            )
+            try:
+                for admin_id in settings.ADMIN_IDS:
+                    await bot.send_message(
+                        chat_id=admin_id,
+                        text=f'Была создана заявка {last_appl.id}, Это сообщение для админа',
+                        reply_markup=ReplyKeyboardRemove()
+                    )
+            except Exception as e:
+                logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
+                pass
+
 
             response_message: str = (
                 f"Заявка № {last_appl.id}\n\nСтатус заявки: 🟡 {last_appl.status.value}\n\n"
@@ -838,10 +844,17 @@ async def approve_form_callback(
 
             # Отправляем медиа группу (фото/видео) и информацию администратору
             await bot.send_media_group(chat_id=settings.ADMIN_IDS[0], media=media)
-            await bot.send_message(chat_id=settings.ADMIN_IDS[0],
-                                   text=response_message,
-                                   reply_markup=approve_admin_keyboard("Берем", "Отказ", call.from_user.id,
-                                                                       last_appl.id))
+            # Отправляем информацию о заявке администратору
+            try:
+                for admin_id in settings.ADMIN_IDS:
+                    await bot.send_message(chat_id=admin_id,
+                                           text=response_message,
+                                           reply_markup=approve_admin_keyboard("Берем", "Отказ", call.from_user.id,
+                                                                               last_appl.id))
+            except Exception as e:
+                logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
+                pass
+
 
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение

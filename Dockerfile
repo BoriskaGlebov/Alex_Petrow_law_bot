@@ -19,7 +19,7 @@ COPY . .
 
 # Открываем порт, если необходимо
 EXPOSE 8000
-#WORKDIR /Alex_Petrow_law_bot/bot
+#WORKDIR /Alex_Petrow_law_bot/botы
 #do
 # Команда для запуска бота
 ENTRYPOINT ["sh", "-c", "sleep 5 && alembic upgrade head && python -m bot.main"]
