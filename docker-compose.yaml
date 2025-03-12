@@ -71,6 +71,7 @@ services:
     build:
       context: .  # Контекст указывает на корень проекта
       dockerfile: Dockerfile  # Имя Dockerfile, если отличается от стандартного
+
     container_name: bot
     restart: always
     #    environment:

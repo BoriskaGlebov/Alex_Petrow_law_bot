@@ -22,5 +22,5 @@ EXPOSE 8000
 #WORKDIR /Alex_Petrow_law_bot/bot
 #do
 # Команда для запуска бота
-ENTRYPOINT ["sh", "-c", "alembic upgrade head && python -m bot.main"]
+ENTRYPOINT ["sh", "-c", "sleep 5 && alembic upgrade head && python -m bot.main"]
 
