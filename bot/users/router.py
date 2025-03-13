@@ -128,7 +128,7 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
                 await state.set_state(CheckForm.age)
 
         # Отправляем все сообщения
-        await message.answer(response_message)
+        await message.answer(response_message,reply_markup=ReplyKeyboardRemove())
         await message.answer(follow_up_message, reply_markup=reply_markup)
 
     except Exception as e:
