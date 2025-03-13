@@ -64,7 +64,7 @@ async def admin_start(message: Message, state: FSMContext, **kwargs: Any) -> Non
 @user_router.message(CommandStart())
 @connection()
 async def cmd_start(
-    message: Message, command: CommandObject, session, state: FSMContext, **kwargs
+        message: Message, command: CommandObject, session, state: FSMContext, **kwargs
 ) -> None:
     """
     Обработчик команды /start для Telegram-бота. Проверяет, существует ли пользователь в базе данных,
@@ -113,6 +113,10 @@ async def cmd_start(
                 follow_up_message = msg4
                 reply_markup = approve_keyboard("Да", "Нет")
                 await state.set_state(CheckForm.age)
+
+                # Отправляем все сообщения
+                await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
+                await message.answer(follow_up_message, reply_markup=reply_markup)
             else:
                 # Определяем реферальный ID, если он был передан
                 ref_id: Optional[int] = get_refer_id_or_none(
@@ -132,13 +136,18 @@ async def cmd_start(
                 # Формируем сообщение для пользователя, в зависимости от реферального ID
                 # ref_message = f" Вы успешно закреплены за пользователем с ID {ref_id}" if ref_id else ""
                 response_message = msg1
-                follow_up_message = msg2 + msg3 + msg4
+                follow_up_message = [msg2, msg3, msg4]
                 reply_markup = approve_keyboard("Да", "Нет")
                 await state.set_state(CheckForm.age)
 
-        # Отправляем все сообщения
-        await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
-        await message.answer(follow_up_message, reply_markup=reply_markup)
+                # Отправляем все сообщения
+                await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
+                asyncio.sleep(0.5)
+                await message.answer(follow_up_message[0])
+                asyncio.sleep(0.5)
+                await message.answer(follow_up_message[1])
+                asyncio.sleep(0.5)
+                await message.answer(follow_up_message[2], reply_markup=reply_markup)
 
     except Exception as e:
         # Логируем ошибку
