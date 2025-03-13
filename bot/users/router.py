@@ -142,11 +142,11 @@ async def cmd_start(
 
                 # Отправляем все сообщения
                 await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
-                asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)
                 await message.answer(follow_up_message[0])
-                asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)
                 await message.answer(follow_up_message[1])
-                asyncio.sleep(0.5)
+                await asyncio.sleep(0.5)
                 await message.answer(follow_up_message[2], reply_markup=reply_markup)
 
     except Exception as e:
