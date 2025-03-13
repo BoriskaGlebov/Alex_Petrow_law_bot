@@ -1,9 +1,9 @@
 from typing import Optional, Dict
 
-from sqlalchemy import Enum, ForeignKey, Integer, String, BigInteger, JSON
+from sqlalchemy import Enum, ForeignKey, String, BigInteger, JSON, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from bot.database import Base, int_pk, async_session
+from bot.database import Base, int_pk
 from enum import Enum as PyEnum
 
 
@@ -22,46 +22,29 @@ class Application(Base):
         user_id (int): Идентификатор пользователя (внешний ключ, связь с User).
         status (ApplicationStatus): Статус заявки (по умолчанию "pending").
         text_application (Optional[str]): Текстовое описание заявки (может быть пустым).
-        admin_message_ids (Dict[int, int]): Словарь, хранящий message_id заявок, отправленных администраторам.
+        admin_message_ids (Dict[int, int]): Словарь соответствий admin_id → message_id.
+        owner (bool): Флаг, указывающий, является ли пользователь владельцем заявки (по умолчанию True).
         user (User): Связь с пользователем, создавшим заявку.
-        photos (List[Photo]): Список связанных фотографий, прикрепленных к заявке.
-        videos (List[Video]): Список связанных видеозаписей, прикрепленных к заявке.
-        debts (List[BankDebt]): Список задолженностей пользователя перед банками.
+        photos (List[Photo]): Связь с фотографиями, прикрепленными к заявке.
+        videos (List[Video]): Связь с видеозаписями, прикрепленными к заявке.
+        debts (List[BankDebt]): Связь с задолженностями, относящимися к заявке.
 
     Таблица:
         - Имя таблицы: `applications`
         - Внешние ключи: `user_id` → `users.id` (с каскадным удалением)
-
     """
 
-    __tablename__ = "applications"
-
-    id: Mapped[int_pk]  # Уникальный идентификатор заявки (первичный ключ).
-
-    user_id: Mapped[int] = mapped_column(
-        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )  # ID пользователя (связь с User)
-
-    status: Mapped[ApplicationStatus] = mapped_column(
-        Enum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
-    )  # Статус заявки (по умолчанию "pending")
-
+    id: Mapped[int_pk]
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status: Mapped[ApplicationStatus] = mapped_column(Enum(ApplicationStatus), default=ApplicationStatus.PENDING,
+                                                      nullable=False)
     text_application: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    # Текст заявки (может быть пустым)
-
     admin_message_ids: Mapped[Dict[int, int]] = mapped_column(JSON, default=dict)
-    # Словарь admin_id -> message_id (чтобы редактировать сообщения у админов)
+    owner: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    # Связь с пользователем (один пользователь может иметь много заявок)
     user = relationship("User", back_populates="applications", lazy="selectin")
-
-    # Связь с фотографиями (одна заявка может иметь много фото)
     photos = relationship("Photo", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
-
-    # Связь с видео (одна заявка может иметь много видео)
     videos = relationship("Video", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
-
-    # Связь с задолженностями (одна заявка может включать несколько долгов)
     debts = relationship("BankDebt", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
 
 

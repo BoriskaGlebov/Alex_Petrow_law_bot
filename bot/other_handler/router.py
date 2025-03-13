@@ -1,9 +1,6 @@
 import asyncio
-import json
-from typing import Optional
 
 from aiogram import F
-from aiogram.filters import CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.chat_action import ChatActionSender
@@ -18,9 +15,8 @@ from bot.config import bot, settings
 from bot.database import connection
 from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
-from bot.users.keyboards.markup_kb import main_kb, phone_kb
-from bot.users.schemas import TelegramIDModel, UserModel, UpdateNumberSchema
-from bot.users.utils import get_refer_id_or_none, normalize_phone_number
+from bot.users.keyboards.markup_kb import main_kb
+from bot.users.schemas import TelegramIDModel
 from bot.application_form.dao import ApplicationDAO
 
 other_router = Router()

@@ -12,7 +12,7 @@ def admin_keyboard() -> InlineKeyboardMarkup:
 
 def approve_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text='✅Все верно', callback_data=f'approve_True')
-    builder.button(text='❌ Нет, напишу 👇', callback_data=f'approve_False')
+    builder.button(text='✅Все верно', callback_data='approve_True')
+    builder.button(text='❌ Нет, напишу 👇', callback_data='approve_False')
     builder.adjust(2)
     return builder.as_markup()

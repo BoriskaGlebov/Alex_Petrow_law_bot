@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import BigInteger, String
-from typing import Optional
+from sqlalchemy import String
 from bot.database import Base, int_pk
 
 

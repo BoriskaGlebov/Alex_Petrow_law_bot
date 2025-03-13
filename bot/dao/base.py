@@ -1,4 +1,4 @@
-from typing import List, Any, TypeVar, Generic, Type, Optional
+from typing import List, TypeVar, Generic, Type, Optional
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select

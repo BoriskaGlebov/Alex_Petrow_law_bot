@@ -1,7 +1,5 @@
-from enum import Enum
 
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel
 
 
 # class ApplicationStatusSchema(str, Enum):  # Наследуем str, чтобы Pydantic понимал его как строку

@@ -4,7 +4,6 @@ from typing import List, Optional
 from loguru import logger
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.redis import RedisStorage
 from pydantic import SecretStr
@@ -78,12 +77,11 @@ storage = RedisStorage.from_url(settings.get_redis_url())
 
 # Инициализируем бота и диспетчер
 bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+# Это если работать без Redis
 # dp = Dispatcher(storage=MemoryStorage())
 dp = Dispatcher(storage=storage)
 admins = settings.ADMIN_IDS
 
-
-# database_url = settings.DB_URL
 
 def user_filter(record: dict) -> bool:
     """Фильтр для логгера, проверяющий наличие ключа 'user' в extra данных."""
@@ -105,7 +103,7 @@ logger.remove()
 
 # Глобальная конфигурация extra (но она не будет работать, если bind не передаст данные)
 logger.configure(extra={"ip": "", "user": "", "filename": ""})
-
+# TODO установи адекватный уровень логирования
 # Настройка логирования для stdout (Только если есть user или filename)
 logger.add(
     sys.stdout,
@@ -122,6 +120,7 @@ logger.add(
     enqueue=True,
 )
 
+# TODO установи адекватный уровень логирования
 # Логирование stdout (Только если нет bind)
 logger.add(
     sys.stdout,
@@ -139,7 +138,7 @@ logger.add(
 
 # Настройка логирования в файл (Только если есть filename)
 log_file_path = os.path.join(settings.BASE_DIR or ".", "file.log")
-
+# TODO установи адекватный уровень логирования
 logger.add(
     log_file_path,
     level="DEBUG",
@@ -159,3 +158,4 @@ if __name__ == '__main__':
     logger.bind(filename="log.txt").error("Лог с filename (должен попасть в файл)")  # Только в файл
     logger.bind(user="boris").error("Лог с user (должен попасть в stdout)")  # Только в stdout
     logger.bind(filename="log.txt", user="boris").error("Лог с обоими (должен попасть в stdout и файл)")  # Везде
+    print(type(settings.ADMIN_IDS))

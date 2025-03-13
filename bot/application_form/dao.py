@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.application_form.models import Application, Photo, Video, BankDebt
 from bot.dao.base import BaseDAO, T
 from bot.config import logger
-from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete, func
+from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete
 
 
 class ApplicationDAO(BaseDAO[Application]):

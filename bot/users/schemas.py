@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field, validator
-import re
+from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+import re
 
 class TelegramIDModel(BaseModel):
     """
@@ -33,37 +34,40 @@ class UserModel(TelegramIDModel):
 
 
 class UpdateNumberSchema(BaseModel):
-    phone_number: str | None = Field(
+    phone_number: Optional[str] = Field(
         None,
-        description="Номер телефона пользователя в международном формате (+71234567890)",
+        description="Номер телефона пользователя в международном формате (+71234567890), поддерживает форматы: +7XXXXXXXXXX или 8XXXXXXXXXX",
         min_length=10,
         max_length=16
     )
 
-    @validator("phone_number")
-    def validate_phone_number(cls, phone_number: str | None) -> str | None:
+    @field_validator("phone_number")
+    def validate_phone_number(cls, phone_number: Optional[str]) -> Optional[str]:
         """
-        Валидирует номер телефона, приводя его к международному формату (+7XXXXXXXXXX).
-        Поддерживает ввод в формате:
-        - +7XXXXXXXXXX
-        - 8XXXXXXXXXX (конвертируется в +7XXXXXXXXXX)
+        Валидирует номер телефона и приводит его к международному формату (+7XXXXXXXXXX).
+
+        Поддерживаются следующие форматы ввода:
+        - +7XXXXXXXXXX (например, +71234567890)
+        - 8XXXXXXXXXX (например, 81234567890), который будет конвертирован в формат +7XXXXXXXXXX.
+
+        Если номер не соответствует ожидаемым форматам, будет поднято исключение ValueError.
 
         Args:
-            phone_number (Optional[str]): Введенный номер телефона.
+            phone_number (Optional[str]): Введенный номер телефона пользователя.
 
         Returns:
-            Optional[str]: Приведенный к международному формату номер или None.
+            Optional[str]: Приведенный номер телефона в международном формате (+7XXXXXXXXXX), или None, если телефон не был передан.
 
         Raises:
-            ValueError: Если номер телефона имеет некорректный формат.
+            ValueError: Если номер телефона не соответствует одному из поддерживаемых форматов.
         """
         if phone_number is None:
             return None
 
-        # Удаляем лишние пробелы и символы (если вдруг введены)
+        # Удаляем лишние пробелы и символы
         phone_number = phone_number.strip()
 
-        # Проверяем, начинается ли номер с +7 или 8, затем конвертируем его в международный формат
+        # Проверяем формат номера и приводим к международному
         if phone_number.startswith("+7") and re.fullmatch(r"\+7\d{10}", phone_number):
             return phone_number
         elif phone_number.startswith("8") and re.fullmatch(r"8\d{10}", phone_number):

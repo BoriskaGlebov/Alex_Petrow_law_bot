@@ -9,9 +9,6 @@ from alembic import context
 
 from bot.config import settings
 from bot.database import Base
-from bot.users.models import User
-from bot.faq.models import Questions
-from bot.application_form.models import ApplicationStatus, Application, Photo, Video, BankDebt
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

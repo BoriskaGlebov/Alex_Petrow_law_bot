@@ -1,14 +1,13 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
-from bot.config import admins
 
 
-def back_keyboard() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardBuilder()
-    kb.button(text="Кнопка текстового меню")
-    kb.adjust(1)
-    return kb.as_markup(resize_keyboard=True)
+# def back_keyboard() -> ReplyKeyboardMarkup:
+#     kb = ReplyKeyboardBuilder()
+#     kb.button(text="Кнопка текстового меню")
+#     kb.adjust(1)
+#     return kb.as_markup(resize_keyboard=True)
 
 
 def main_kb(user_telegram_id: int = None) -> ReplyKeyboardMarkup:

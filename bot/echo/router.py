@@ -1,23 +1,9 @@
-import asyncio
-from collections import namedtuple
 
 from aiogram import F
-from aiogram.filters import CommandObject, CommandStart, Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.utils.chat_action import ChatActionSender
 from loguru import logger
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message
 from aiogram.dispatcher.router import Router
-from sqlalchemy.util import merge_lists_w_ordering
 
-from bot.config import bot
-from bot.database import connection
-from bot.application_form.utils import extract_number
-from bot.users.dao import UserDAO
-from bot.users.keyboards.markup_kb import main_kb
-from bot.users.schemas import TelegramIDModel, UserModel
-from bot.users.utils import get_refer_id_or_none
 
 echo_router = Router()
 

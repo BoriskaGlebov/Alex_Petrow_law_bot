@@ -1,5 +1,5 @@
 from aiogram import F
-from aiogram.filters import CommandObject, CommandStart, Command
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from loguru import logger
@@ -12,10 +12,7 @@ from bot.faq.dao import QuestionsDAO
 from bot.faq.keyboards.inline_kb import faq_inline_keyboard
 from bot.faq.schemas import QuestionFilter
 from bot.faq.utils import update_cache
-from bot.users.dao import UserDAO
 from bot.users.keyboards.markup_kb import main_kb
-from bot.users.schemas import TelegramIDModel, UserModel
-from bot.users.utils import get_refer_id_or_none
 
 faq_router = Router()
 # Глобальный кэш для хранения вопросов и ответов

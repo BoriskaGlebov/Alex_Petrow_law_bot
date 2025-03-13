@@ -12,7 +12,7 @@ def admin_keyboard() -> InlineKeyboardMarkup:
 
 def owner_keyboard() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text='❎ Cобственные средства', callback_data=f'owner_True')
-    builder.button(text='❎ Средства клиенты', callback_data=f'owner_False')
+    builder.button(text='❎ Cобственные средства', callback_data='owner_True')
+    builder.button(text='❎ Средства клиенты', callback_data='owner_False')
     builder.adjust(2)
     return builder.as_markup()

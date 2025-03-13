@@ -1,5 +1,4 @@
 import asyncio
-from aiogram.types import BotCommand, BotCommandScopeDefault
 from loguru import logger
 
 from bot.admins.router import admin_router
@@ -11,9 +10,7 @@ from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
 from bot.other_handler.router import other_router
-from bot.users.dao import UserDAO
 from bot.users.router import user_router
-from bot.users.schemas import TelegramIDModel
 from bot.utils.commands import  set_bot_commands
 from bot.utils.set_description_file import set_description
 
@@ -33,9 +30,9 @@ async def start_bot():
     await set_description(bot=bot)
     for admin_id in admins:
         try:
-            await bot.send_message(admin_id, f'Я запущен🥳.')
+            await bot.send_message(admin_id, 'Я запущен🥳.')
         except Exception as e:
-            logger.error(f"Не удалось отправить сообщение админу {admin_id}: {e}")
+            logger.bind(user=admin_id).error(f"Не удалось отправить сообщение админу {admin_id}: {e}")
             pass
     logger.info("Бот успешно запущен.")
 
@@ -52,7 +49,7 @@ async def stop_bot():
         for admin_id in admins:
             await bot.send_message(admin_id, 'Бот остановлен. За что?😔')
     except Exception as e:
-        logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
+        logger.bind(user=admin_id).error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
         pass
     logger.error("Бот остановлен!")
 
@@ -70,7 +67,6 @@ async def main():
     dp.include_router(user_router)
     dp.include_router(other_router)
     dp.include_router(application_form_router)
-
     dp.include_router(admin_router)
     dp.include_router(echo_router)
 
@@ -88,26 +84,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    # async def test_add_application():
-    #     async with async_session() as session:
-    #         # Создаем Pydantic-модель
-    #         # user=TelegramIDModel(telegram_id=439653349)
-    #         # user=await UserDAO.find_one_or_none(session=session,filters=user)
-    #         # print(f"Я вытащил пользователя {user.username}")
-    #         # if user.applications:
-    #         #     print(f"у пользователя заявки {user.applications[-1].id}")
-    #         #     print(f"у пользователя заявки {user.applications[-1]}")
-    #         #     print(f"медиа по последней заявке {user.applications[-1].photos[0].file_id}")
-    #         #     print(f"медиа по последней заявке {user.applications[-1].videos}")
-    #         #     print(f"медиа по последней заявке {user.applications[-1].debts[0].bank_name}")
-    #         #     print(type(user.applications[-1]))
-    #         #     # s= await  ApplicationDAO.delete(session=session,filters=user.applications[-1].to_dict())
-    #
-    #         await ApplicationDAO.update(session=session, filters={'id': 29},
-    #                                     values={'status': ApplicationStatus("approved")})
-    # #
-    # #
-    # #
-    # asyncio.run(test_add_application())
-
-#

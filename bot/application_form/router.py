@@ -1,12 +1,8 @@
 import asyncio
 import re
-from collections import namedtuple
-from pprint import pprint
 from typing import Optional, List
 
-import redis
 from aiogram import F, types
-from aiogram.filters import CommandObject, CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.utils.chat_action import ChatActionSender
@@ -14,23 +10,21 @@ from loguru import logger
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove, InputMediaPhoto, InputMediaVideo, InputMedia
 from aiogram.dispatcher.router import Router
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.util import merge_lists_w_ordering
 
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard
 from bot.application_form.dao import ApplicationDAO, VideoDAO, BankDebtDAO, PhotoDAO
 from bot.application_form.keyboards.inline_kb import owner_keyboard
-from bot.application_form.models import Application, Video, BankDebt, ApplicationStatus
+from bot.application_form.models import Application, ApplicationStatus
 from bot.application_form.schemas import PhotoModelSchema, VideoModelSchema, \
     BankDebtModelSchema
 from bot.config import bot, settings
-from bot.database import connection, async_session
-from bot.application_form.utils import extract_number
+from bot.database import connection
 from bot.other_handler.router import OtherHandler
 from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import main_kb, phone_kb
-from bot.users.schemas import TelegramIDModel, UserModel, UpdateNumberSchema
-from bot.users.utils import get_refer_id_or_none, normalize_phone_number
+from bot.users.schemas import TelegramIDModel, UpdateNumberSchema
+from bot.users.utils import normalize_phone_number
 
 application_form_router = Router()
 

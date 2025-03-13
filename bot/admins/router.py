@@ -1,18 +1,15 @@
-import json
 
 from aiogram import F
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
 from loguru import logger
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery
 from aiogram.dispatcher.router import Router
 
 import bot.application_form.dao
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard
 from bot.application_form.dao import ApplicationDAO
 from bot.application_form.models import ApplicationStatus
-from bot.config import bot, settings
+from bot.config import bot
 from bot.database import connection
 
 admin_router = Router()
