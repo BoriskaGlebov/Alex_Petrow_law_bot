@@ -1,0 +1,108 @@
+services:
+  db:
+    image: postgres:16
+    container_name: db_bot
+    restart: always
+    env_file:
+      - .env  # Используем переменную окружения для выбора файла .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      #      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_DB},${POSTGRES_DB3}
+      POSTGRES_DB: ${DB_NAME}
+      TZ: Europe/Moscow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      #      - ./pg_logs/:/var/lib/postgresql/logs # Подключение папки для логов,в будущем можно подключить в хранилище докера
+      #для нормального просмотра содержимого логов нужно  sudo chown 999:999 -R pg_logs/ && sudo сhmod -R 777 pg_logs/
+    #      - ./postgresql.conf:/etc/postgresql/postgresql.conf # Подключение конфигурационного файла
+    #    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+    command: >
+      sh -c "
+        docker-entrypoint.sh postgres &
+        until pg_isready -U ${DB_USER} -d ${DB_NAME}; do sleep 1; done;
+        wait"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 256M
+    networks:
+      - monitoring_net
+
+  redis:
+    image: redis:latest
+    container_name: redis_cache
+    restart: always
+    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD} # Еще нужно явно указать пароль в config
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a $REDIS_PASSWORD ping" ]
+      #      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - monitoring_net
+
+  bot:
+    build:
+      context: .  # Контекст указывает на корень проекта
+      dockerfile: Dockerfile  # Имя Dockerfile, если отличается от стандартного
+
+    container_name: bot
+    restart: always
+    #    environment:
+    #      - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}  # Добавьте переменные окружения для бота
+    #      - DB_USER=${DB_USER}
+    #      - DB_PASSWORD=${DB_PASSWORD}
+    #      - DB_NAME=${DB_NAME}
+    #      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "8000:8000"  # Если у вас используется HTTP сервер (например, FastAPI)
+    depends_on:
+      - db
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - monitoring_net
+
+volumes:
+  pg_data:
+    name: bot_db
+  redis_data:
+    name: redis_data
+
+
+networks:
+  monitoring_net:
+    name: monitoring_net
+#    external: true

@@ -1,4 +1,4 @@
-from typing import List, Any, TypeVar, Generic
+from typing import List, TypeVar, Generic, Type, Optional
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.future import select
@@ -13,11 +13,22 @@ T = TypeVar("T", bound=Base)
 
 
 class BaseDAO(Generic[T]):
-    model: type[T]
+    model: Type[T]  # Тип модели, которой управляет этот DAO
 
     @classmethod
-    async def find_one_or_none_by_id(cls, data_id: int, session: AsyncSession):
-        # Найти запись по ID
+    async def find_one_or_none_by_id(
+        cls, data_id: int, session: AsyncSession
+    ) -> Optional[T]:
+        """
+        Находит запись по ID.
+
+        Args:
+            data_id (int): Идентификатор записи.
+            session (AsyncSession): Сессия для взаимодействия с БД.
+
+        Returns:
+            Optional[T]: Запись с указанным ID или None, если запись не найдена.
+        """
         logger.info(f"Поиск {cls.model.__name__} с ID: {data_id}")
         try:
             query = select(cls.model).filter_by(id=data_id)
@@ -33,10 +44,23 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def find_one_or_none(cls, session: AsyncSession, filters: BaseModel):
-        # Найти одну запись по фильтрам
+    async def find_one_or_none(
+        cls, session: AsyncSession, filters: BaseModel
+    ) -> Optional[T]:
+        """
+        Находит одну запись по фильтрам.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            filters (BaseModel): Фильтры для поиска.
+
+        Returns:
+            Optional[T]: Найденная запись или None.
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
-        logger.info(f"Поиск одной записи {cls.model.__name__} по фильтрам: {filter_dict}")
+        logger.info(
+            f"Поиск одной записи {cls.model.__name__} по фильтрам: {filter_dict}"
+        )
         try:
             query = select(cls.model).filter_by(**filter_dict)
             result = await session.execute(query)
@@ -51,10 +75,21 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def find_all(cls, session: AsyncSession, filters: BaseModel):
-        # Найти все записи по фильтрам
+    async def find_all(cls, session: AsyncSession, filters: BaseModel) -> List[T]:
+        """
+        Находит все записи по фильтрам.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            filters (BaseModel): Фильтры для поиска.
+
+        Returns:
+            List[T]: Список найденных записей.
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
-        logger.info(f"Поиск всех записей {cls.model.__name__} по фильтрам: {filter_dict}")
+        logger.info(
+            f"Поиск всех записей {cls.model.__name__} по фильтрам: {filter_dict}"
+        )
         try:
             query = select(cls.model).filter_by(**filter_dict)
             result = await session.execute(query)
@@ -62,14 +97,27 @@ class BaseDAO(Generic[T]):
             logger.info(f"Найдено {len(records)} записей.")
             return records
         except SQLAlchemyError as e:
-            logger.error(f"Ошибка при поиске всех записей по фильтрам {filter_dict}: {e}")
+            logger.error(
+                f"Ошибка при поиске всех записей по фильтрам {filter_dict}: {e}"
+            )
             raise
 
     @classmethod
-    async def add(cls, session: AsyncSession, values: BaseModel):
-        # Добавить одну запись
+    async def add(cls, session: AsyncSession, values: BaseModel) -> T:
+        """
+        Добавляет одну запись в базу данных.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            values (BaseModel): Значения для новой записи.
+
+        Returns:
+            T: Добавленная запись.
+        """
         values_dict = values.model_dump(exclude_unset=True)
-        logger.info(f"Добавление записи {cls.model.__name__} с параметрами: {values_dict}")
+        logger.info(
+            f"Добавление записи {cls.model.__name__} с параметрами: {values_dict}"
+        )
         new_instance = cls.model(**values_dict)
         session.add(new_instance)
         try:
@@ -82,10 +130,23 @@ class BaseDAO(Generic[T]):
         return new_instance
 
     @classmethod
-    async def add_many(cls, session: AsyncSession, instances: List[BaseModel]):
-        # Добавить несколько записей
+    async def add_many(
+        cls, session: AsyncSession, instances: List[BaseModel]
+    ) -> List[T]:
+        """
+        Добавляет несколько записей в базу данных.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            instances (List[BaseModel]): Список значений для новых записей.
+
+        Returns:
+            List[T]: Список добавленных записей.
+        """
         values_list = [item.model_dump(exclude_unset=True) for item in instances]
-        logger.info(f"Добавление нескольких записей {cls.model.__name__}. Количество: {len(values_list)}")
+        logger.info(
+            f"Добавление нескольких записей {cls.model.__name__}. Количество: {len(values_list)}"
+        )
         new_instances = [cls.model(**values) for values in values_list]
         session.add_all(new_instances)
         try:
@@ -98,11 +159,25 @@ class BaseDAO(Generic[T]):
         return new_instances
 
     @classmethod
-    async def update(cls, session: AsyncSession, filters: BaseModel, values: BaseModel):
-        # Обновить записи по фильтрам
+    async def update(
+        cls, session: AsyncSession, filters: BaseModel, values: BaseModel
+    ) -> int:
+        """
+        Обновляет записи по фильтрам.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            filters (BaseModel): Фильтры для обновления.
+            values (BaseModel): Новые значения для обновленных записей.
+
+        Returns:
+            int: Количество обновленных записей.
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
         values_dict = values.model_dump(exclude_unset=True)
-        logger.info(f"Обновление записей {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}")
+        logger.info(
+            f"Обновление записей {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}"
+        )
         query = (
             sqlalchemy_update(cls.model)
             .where(*[getattr(cls.model, k) == v for k, v in filter_dict.items()])
@@ -120,8 +195,17 @@ class BaseDAO(Generic[T]):
             raise e
 
     @classmethod
-    async def delete(cls, session: AsyncSession, filters: BaseModel):
-        # Удалить записи по фильтру
+    async def delete(cls, session: AsyncSession, filters: BaseModel) -> int:
+        """
+        Удаляет записи по фильтрам.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            filters (BaseModel): Фильтры для удаления.
+
+        Returns:
+            int: Количество удаленных записей.
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
         logger.info(f"Удаление записей {cls.model.__name__} по фильтру: {filter_dict}")
         if not filter_dict:
@@ -140,10 +224,21 @@ class BaseDAO(Generic[T]):
             raise e
 
     @classmethod
-    async def count(cls, session: AsyncSession, filters: BaseModel):
-        # Подсчитать количество записей
+    async def count(cls, session: AsyncSession, filters: BaseModel) -> int:
+        """
+        Подсчитывает количество записей по фильтрам.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            filters (BaseModel): Фильтры для подсчета.
+
+        Returns:
+            int: Количество записей.
+        """
         filter_dict = filters.model_dump(exclude_unset=True)
-        logger.info(f"Подсчет количества записей {cls.model.__name__} по фильтру: {filter_dict}")
+        logger.info(
+            f"Подсчет количества записей {cls.model.__name__} по фильтру: {filter_dict}"
+        )
         try:
             query = select(func.count(cls.model.id)).filter_by(**filter_dict)
             result = await session.execute(query)
@@ -155,14 +250,34 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def paginate(cls, session: AsyncSession, page: int = 1, page_size: int = 10, filters: BaseModel = None):
-        # Пагинация записей
+    async def paginate(
+        cls,
+        session: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        filters: BaseModel = None,
+    ) -> List[T]:
+        """
+        Пагинирует записи по фильтрам.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            page (int): Номер страницы.
+            page_size (int): Размер страницы.
+            filters (Optional[BaseModel]): Фильтры для поиска (по умолчанию None).
+
+        Returns:
+            List[T]: Список записей на текущей странице.
+        """
         filter_dict = filters.model_dump(exclude_unset=True) if filters else {}
         logger.info(
-            f"Пагинация записей {cls.model.__name__} по фильтру: {filter_dict}, страница: {page}, размер страницы: {page_size}")
+            f"Пагинация записей {cls.model.__name__} по фильтру: {filter_dict}, страница: {page}, размер страницы: {page_size}"
+        )
         try:
             query = select(cls.model).filter_by(**filter_dict)
-            result = await session.execute(query.offset((page - 1) * page_size).limit(page_size))
+            result = await session.execute(
+                query.offset((page - 1) * page_size).limit(page_size)
+            )
             records = result.scalars().all()
             logger.info(f"Найдено {len(records)} записей на странице {page}.")
             return records
@@ -171,8 +286,17 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def find_by_ids(cls, session: AsyncSession, ids: List[int]) -> List[Any]:
-        """Найти несколько записей по списку ID"""
+    async def find_by_ids(cls, session: AsyncSession, ids: List[int]) -> List[T]:
+        """
+        Находит несколько записей по списку ID.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            ids (List[int]): Список ID для поиска.
+
+        Returns:
+            List[T]: Список найденных записей.
+        """
         logger.info(f"Поиск записей {cls.model.__name__} по списку ID: {ids}")
         try:
             query = select(cls.model).filter(cls.model.id.in_(ids))
@@ -185,14 +309,30 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def upsert(cls, session: AsyncSession, unique_fields: List[str], values: BaseModel):
-        """Создать запись или обновить существующую"""
+    async def upsert(
+        cls, session: AsyncSession, unique_fields: List[str], values: BaseModel
+    ) -> T:
+        """
+        Создает запись или обновляет существующую.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            unique_fields (List[str]): Поля, которые определяют уникальность записи.
+            values (BaseModel): Новые значения для записи.
+
+        Returns:
+            T: Созданная или обновленная запись.
+        """
         values_dict = values.model_dump(exclude_unset=True)
-        filter_dict = {field: values_dict[field] for field in unique_fields if field in values_dict}
+        filter_dict = {
+            field: values_dict[field] for field in unique_fields if field in values_dict
+        }
 
         logger.info(f"Upsert для {cls.model.__name__}")
         try:
-            existing = await cls.find_one_or_none(session, BaseModel.construct(**filter_dict))
+            existing = await cls.find_one_or_none(
+                session, BaseModel.construct(**filter_dict)
+            )
             if existing:
                 # Обновляем существующую запись
                 for key, value in values_dict.items():
@@ -214,19 +354,28 @@ class BaseDAO(Generic[T]):
 
     @classmethod
     async def bulk_update(cls, session: AsyncSession, records: List[BaseModel]) -> int:
-        """Массовое обновление записей"""
+        """
+        Массовое обновление записей.
+
+        Args:
+            session (AsyncSession): Сессия для взаимодействия с БД.
+            records (List[BaseModel]): Список записей для обновления.
+
+        Returns:
+            int: Количество обновленных записей.
+        """
         logger.info(f"Массовое обновление записей {cls.model.__name__}")
         try:
             updated_count = 0
             for record in records:
                 record_dict = record.model_dump(exclude_unset=True)
-                if 'id' not in record_dict:
+                if "id" not in record_dict:
                     continue
 
-                update_data = {k: v for k, v in record_dict.items() if k != 'id'}
+                update_data = {k: v for k, v in record_dict.items() if k != "id"}
                 stmt = (
                     sqlalchemy_update(cls.model)
-                    .filter_by(id=record_dict['id'])
+                    .filter_by(id=record_dict["id"])
                     .values(**update_data)
                 )
                 result = await session.execute(stmt)
@@ -238,4 +387,4 @@ class BaseDAO(Generic[T]):
         except SQLAlchemyError as e:
             await session.rollback()
             logger.error(f"Ошибка при массовом обновлении: {e}")
-            raise
+            raise e
