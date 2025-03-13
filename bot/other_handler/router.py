@@ -27,41 +27,70 @@ class OtherHandler(StatesGroup):
     approve_form = State()
 
 
+# Обработчик для обработки сообщения с заявкой пользователя
 @other_router.message(F.text, OtherHandler.other_question)
 @connection()
 async def other_question_message(message: Message, session, state: FSMContext, **kwargs) -> None:
     """
+    Обработчик для получения текстового сообщения от пользователя, оформления заявки и отправки подтверждения.
 
+    Этот обработчик извлекает текст заявки, создает новую запись в базе данных,
+    а затем отправляет пользователю сообщение с подтверждением оформления заявки.
+    В процессе работы с базой данных показывается индикатор набора текста.
+
+    Args:
+        message (Message): Сообщение от пользователя, содержащее текст заявки.
+        session: Сессия для работы с базой данных.
+        state (FSMContext): Контекст состояния машины состояний для пользователя.
+        **kwargs: Дополнительные аргументы, передаваемые через декоратор.
+
+    Returns:
+        None: Функция не возвращает значений, но отправляет сообщение пользователю с подтверждением заявки.
+
+    Raises:
+        Exception: В случае ошибки при работе с базой данных или отправке сообщения.
     """
     try:
         user_id: int = message.from_user.id
 
-        # Проверяем, существует ли уже пользователь в базе данных
-        user_info = await UserDAO.find_one_or_none(session=session,
-                                                   filters=TelegramIDModel(telegram_id=user_id))
-        application_model = Application(user_id=user_info.id, text_application=message.text)
-        application: Application = await ApplicationDAO.add(session=session, values=application_model.to_dict())
-        logger.debug(f"Создал заявку - {application.id}")
-        # Подготовка текста для сообщения
-        response_message: str = f"Спасибо! Ваша заявка № {application.id} успешно оформлена. \n\nСтатус заявки: 🟡 {application.status.value}\n\n"
+        # Показываем индикатор набора текста
+        async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
+            # await asyncio.sleep(2)  # Симуляция времени для обработки данных
 
-        response_message += (f"Ваша вопрос:\n"
-                             f"{application.text_application}")
+            # Проверяем, существует ли уже пользователь в базе данных
+            user_info = await UserDAO.find_one_or_none(session=session, filters=TelegramIDModel(telegram_id=user_id))
 
-        response_message += "\n\nПроверьте верно ли указаны все данные?"
+            if user_info is None:
+                raise ValueError("Пользователь не найден в базе данных.")
 
-        await message.answer(response_message, reply_markup=approve_keyboard("ДА", "НЕТ, начать сначала."))
+            # Создаем заявку
+            application_model = Application(user_id=user_info.id, text_application=message.text)
+            application: Application = await ApplicationDAO.add(session=session, values=application_model.to_dict())
 
-        await state.set_state(OtherHandler.approve_form)
+            logger.debug(f"Создана заявка - {application.id}")
 
-        logger.info(f"Заявка {application.id} успешно добавлена в базу данных.")
+            # Подготовка текста для сообщения
+            response_message: str = f"Спасибо! Ваша заявка № {application.id} успешно оформлена. \n\nСтатус заявки: 🟡 {application.status.value}\n\n"
+            response_message += (f"Ваш вопрос:\n"
+                                 f"{application.text_application}")
+
+            response_message += "\n\nПроверьте верно ли указаны все данные?"
+
+            # Отправляем сообщение с подтверждением
+            await message.answer(response_message, reply_markup=approve_keyboard("ДА", "НЕТ, начать сначала."))
+
+            # Устанавливаем состояние для следующего шага
+            await state.set_state(OtherHandler.approve_form)
+
+            logger.info(f"Заявка {application.id} успешно добавлена в базу данных.")
 
     except Exception as e:
-        # Логируем ошибку, если она возникла
-        logger.error(f"Ошибка при выполнении команды /start для пользователя {message.from_user.id}: {e}")
+        # Логируем ошибку
+        logger.error(f"Ошибка при обработке заявки для пользователя {message.from_user.id}: {e}")
         await message.answer("Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.")
 
 
+# Обработчик для одобрения или отклонения заявки
 @other_router.callback_query(F.data.startswith('approve_'), OtherHandler.approve_form)
 @connection()
 async def approve_form_callback(
@@ -73,26 +102,32 @@ async def approve_form_callback(
     Обрабатывает callback-запрос пользователя, одобряющего форму заявки.
     В зависимости от решения пользователя, заявка будет либо одобрена, либо отклонена.
 
-    Параметры:
-        call (CallbackQuery): Объект callback-запроса от Telegram.
+    В процессе работы с базой данных показывается индикатор набора текста.
+
+    Args:
+        call (CallbackQuery): Коллбек-запрос от пользователя.
         state (FSMContext): Контекст состояния Finite State Machine (FSM) для текущего пользователя.
         session: Сессия базы данных для взаимодействия с DAO.
 
-    Исключения:
-        Обрабатываются все исключения с выводом ошибки в лог.
+    Returns:
+        None: Функция не возвращает значений, но изменяет состояние машины и отправляет сообщения.
+
+    Raises:
+        Exception: В случае ошибки при обработке данных или отправке сообщений.
     """
     try:
         admin_message_ids = {}
+
         # Ответ на запрос для предотвращения уведомлений
         await call.answer(text="Проверяю ввод", show_alert=False)
 
-        # Обработка данных callback-запроса
+        # Получаем ответ на запрос для одобрения или отклонения формы
         approve_form_inf: bool = call.data.replace('approve_', '') == "True"
 
         # Удаляем клавиатуру из сообщения
         await call.message.edit_reply_markup(reply_markup=None)
 
-        # Ищем пользователя и его последние заявки
+        # Ищем пользователя и его заявки
         user_id = TelegramIDModel(telegram_id=call.from_user.id)
         user_applications = await UserDAO.find_one_or_none(session=session, filters=user_id)
 
@@ -102,12 +137,11 @@ async def approve_form_callback(
         last_appl: Application = user_applications.applications[-1]
 
         if approve_form_inf:
-            # Если пользователь согласен с данными в форме
-            await state.clear()  # Очищаем состояние FSM
+            # Если пользователь согласен с данными в заявке, очищаем состояние и отправляем сообщение
+            await state.clear()
 
-            # Отправляем сообщение о том, что заявка принята
+            # Имитируем набор текста перед отправкой сообщения пользователю
             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-                await asyncio.sleep(2)  # Имитируем набор текста
                 await bot.send_message(
                     chat_id=call.message.chat.id,
                     text='В ближайшее время с вами свяжется наш специалист для уточнения деталей.',
@@ -115,49 +149,44 @@ async def approve_form_callback(
                 )
 
             # Отправляем информацию о заявке администратору
-            await bot.send_message(
-                chat_id=settings.ADMIN_IDS[0],
-                text=f'Была создана заявка {last_appl.id}, Это сообщение для админа',
-                reply_markup=ReplyKeyboardRemove()
-            )
-            # Отправляем информацию о заявке администратору
             try:
                 for admin_id in settings.ADMIN_IDS:
                     await bot.send_message(
                         chat_id=admin_id,
-                        text=f'Была создана заявка {last_appl.id}, Это сообщение для админа',
+                        text=f'Была создана заявка {last_appl.id}. Пожалуйста, рассмотрите заявку.',
                         reply_markup=ReplyKeyboardRemove()
                     )
             except Exception as e:
                 logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
                 pass
 
+            # Подготовка сообщения для пользователя с деталями заявки
             response_message: str = (
                 f"Заявка № {last_appl.id}\n\nСтатус заявки: 🟡 {last_appl.status.value}\n\n"
             )
 
-            response_message += (f"Ваша вопрос:\n"
+            response_message += (f"Ваш вопрос:\n"
                                  f"{last_appl.text_application}")
             response_message += f"\n\n <b>{user_applications.phone_number}</b> \n\n"
             response_message += "\n\n Берете заявку в работу?"
 
-            # Отправляем медиа группу (фото/видео) и информацию администратору
-
-            # Отправляем информацию о заявке администратору
+            # Отправка сообщения администраторам
             try:
                 for admin_id in settings.ADMIN_IDS:
-                    message = await bot.send_message(chat_id=admin_id,
-                                                     text=response_message,
-                                                     reply_markup=approve_admin_keyboard("Берем", "Отказ",
-                                                                                         call.from_user.id,
-                                                                                         last_appl.id))
+                    message = await bot.send_message(
+                        chat_id=admin_id,
+                        text=response_message,
+                        reply_markup=approve_admin_keyboard("Берем", "Отказ", call.from_user.id, last_appl.id)
+                    )
                     admin_message_ids[admin_id] = message.message_id  # Сохраняем message_id
 
+                # Обновляем заявку с id сообщений для администраторов
                 await ApplicationDAO.update(
                     session=session,
                     filters={"id": last_appl.id},
                     values={"admin_message_ids": admin_message_ids}
                 )
+
             except Exception as e:
                 logger.error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
                 pass
@@ -176,183 +205,3 @@ async def approve_form_callback(
         # Логируем ошибку и отправляем пользователю сообщение о сбое
         logger.error(f"Ошибка при обработке запроса: {e}")
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
-
-# @user_router.message(lambda message: message.contact is not None)
-# @connection()
-# async def handle_contact(message: Message, state: FSMContext, session) -> None:
-#     """
-#     Обрабатывает получение номера телефона пользователя.
-#
-#     Args:
-#         message (Message): Сообщение с контактной информацией.
-#         state (FSMContext): Контекст состояния FSM.
-#     """
-#     contact = message.contact
-#     user_id = message.from_user.id
-#     phone_number = contact.phone_number
-#     phone_number = normalize_phone_number(phone_number)
-#
-#     # Сохранение номера в БД
-#     existing_user = await UserDAO.find_one_or_none(filters=TelegramIDModel(telegram_id=user_id), session=session)
-#
-#     if existing_user:
-#         await UserDAO.update(filters=TelegramIDModel(telegram_id=user_id),
-#                              values=UpdateNumberSchema(phone_number=phone_number), session=session)
-#     else:
-#         return
-#
-#         # Ответ пользователю
-#
-#     async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-#         await asyncio.sleep(2)
-#         await message.answer(
-#             f"Спасибо! Ваш номер {phone_number} сохранен. Мы свяжемся с вами при необходимости.",
-#             reply_markup=ReplyKeyboardRemove()
-#         )
-#         msg4 = f"Вам уже исполнилось 🔞 18 лет? "
-#         await message.answer(msg4, reply_markup=approve_keyboard("Да", "Нет"))
-#         await state.set_state(CheckForm.age)
-
-
-#
-# @dp.message(lambda message: message.contact is None)  # Пользователь отправил текст вместо контакта
-# async def handle_manual_phone(message: Message) -> None:
-#     """
-#     Обрабатывает случай, когда пользователь вводит номер вручную.
-#
-#     Args:
-#         message (Message): Сообщение пользователя.
-#     """
-#     user_id = message.from_user.id
-#     phone_number = message.text.strip()
-#
-#     # Проверяем номер на соответствие формату
-#     if not PHONE_REGEX.match(phone_number):
-#         await message.answer(
-#             "Похоже, вы ввели неверный номер телефона. Пожалуйста, используйте формат +7XXXXXXXXXX или 8XXXXXXXXXX."
-#         )
-#         return
-#
-#     # Сохранение номера в БД
-#     existing_user = await UserDAO.find_one_or_none(filters=TelegramIDModel(telegram_id=user_id))
-#
-#     if existing_user:
-#         await UserDAO.update(filters={"telegram_id": user_id}, values={"phone_number": phone_number})
-#     else:
-#         return
-#
-#     # Ответ пользователю
-#     await message.answer(
-#         f"Спасибо! Ваш номер {phone_number} сохранен. Мы свяжемся с вами при необходимости.",
-#         reply_markup=ReplyKeyboardRemove()
-#     )
-
-#
-# @user_router.callback_query(F.data.startswith('approve_'), CheckForm.age)
-# async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
-#     """
-#     Обработчик callback-запросов для проверки возраста пользователя.
-#
-#     Этот обработчик вызывается, когда пользователь отвечает на вопрос о возрасте в анкете.
-#     Если пользователь подтвердил, что ему исполнилось 18 лет, он переходит к следующему вопросу.
-#     В противном случае, анкета обнуляется, и пользователю отправляется сообщение о том, что
-#     он не может воспользоваться услугами.
-#
-#     Args:
-#         call (CallbackQuery): Объект callback-запроса, который содержит данные о взаимодействии пользователя с клавиатурой.
-#         state (FSMContext): Контекст машины состояний, в котором хранятся данные анкеты.
-#
-#     Returns:
-#         None: Функция не возвращает значения, но отправляет сообщение пользователю.
-#     """
-#     try:
-#         await call.answer(text="Проверяю ввод", show_alert=False)
-#
-#         approve_inf = call.data.replace('approve_', '')
-#         approve_inf = True if approve_inf == "True" else False
-#         await call.message.delete()
-#         # # Удаляем клавиатуру и сообщение о возрасте
-#         # await call.message.edit_text("Спасибо за ответ. Проверяю данные...")
-#         # await call.message.edit_reply_markup(reply_markup=None)
-#         if approve_inf:
-#             await state.update_data(age=approve_inf)
-#             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-#                 await asyncio.sleep(2)
-#                 await bot.send_message(chat_id=call.message.chat.id,
-#                                        text='Вы являетесь налоговым резитентом Российской Федерации?🇷🇺',
-#                                        reply_markup=approve_keyboard("Да", "Нет"))
-#                 await state.set_state(CheckForm.resident)
-#         else:
-#             await state.clear()
-#             await bot.send_message(chat_id=call.message.chat.id,
-#                                    text="К сожалению мы не предоставляем услуги лицам младше 🔞 18 лет!")
-#
-#     except Exception as e:
-#         # Логируем ошибку
-#         logger.error(f"Ошибка при обработке запроса: {e}")
-#         await call.message.answer("Произошла ошибка. Попробуйте снова.")
-#
-#
-# @user_router.callback_query(F.data.startswith('approve_'), CheckForm.resident)
-# async def resident_callback(call: CallbackQuery, state: FSMContext) -> None:
-#     """
-#     Обработчик callback-запросов для проверки налогового резидентства пользователя.
-#
-#     Этот обработчик вызывается, когда пользователь отвечает на вопрос о налоговом резидентстве в анкете.
-#     Если пользователь является налоговым резидентом России, ему показывается основное меню,
-#     иначе анкета обнуляется, и пользователю отправляется сообщение о том, что бот не работает с налоговыми резидентами других стран.
-#
-#     Args:
-#         call (CallbackQuery): Объект callback-запроса, который содержит данные о взаимодействии пользователя с клавиатурой.
-#         state (FSMContext): Контекст машины состояний, в котором хранятся данные анкеты.
-#
-#     Returns:
-#         None: Функция не возвращает значения, но отправляет сообщение пользователю.
-#     """
-#     try:
-#         await call.answer(text="Проверяю ввод", show_alert=False)
-#         approve_inf = call.data.replace('approve_', '')
-#         approve_inf = True if approve_inf == "True" else False
-#         await call.message.delete()
-#         if approve_inf:
-#             await state.update_data(age=approve_inf)
-#             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-#                 await asyncio.sleep(2)
-#                 await bot.send_message(chat_id=call.message.chat.id,
-#                                        text='Отлично, выберите один из представленных вариантов 👇',
-#                                        reply_markup=main_kb())
-#                 await state.clear()
-#         else:
-#             await state.clear()
-#             await bot.send_message(chat_id=call.message.chat.id,
-#                                    text="К сожалению мы 🧑‍🎓 не работаем с налоговыми резидентами других стран.")
-#
-#     except Exception as e:
-#         # Логируем ошибку
-#         logger.error(f"Ошибка при обработке запроса: {e}")
-#         await call.message.answer("Произошла ошибка. Попробуйте снова.")
-#
-#
-# @user_router.message(F.text, CheckForm.age)
-# @user_router.message(F.text, CheckForm.resident)
-# async def mistakes_handler(message: Message, state: FSMContext) -> None:
-#     """
-#     Обработчик для случаев, когда пользователь отправляет текст вместо того, чтобы выбрать одну из кнопок.
-#
-#     Этот обработчик вызывается, когда пользователь вводит текст в состоянии анкеты, где ожидается выбор из клавиатуры.
-#     Бот информирует пользователя о том, что нужно выбрать одну из кнопок.
-#
-#     Args:
-#         message (Message): Сообщение от пользователя, содержащее его текст.
-#         state (FSMContext): Контекст машины состояний, где хранятся данные анкеты.
-#
-#     Returns:
-#         None: Функция не возвращает значений, но отправляет сообщение пользователю о том, что нужно выбрать кнопку.
-#     """
-#     try:
-#         await message.answer("Необходимо нажать по кнопке 👆")
-#
-#     except Exception as e:
-#         # Логируем ошибку
-#         logger.error(f"Ошибка при обработке запроса: {e}")
-#         await message.answer("Произошла ошибка. Попробуйте снова.")

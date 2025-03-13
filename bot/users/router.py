@@ -166,7 +166,6 @@ async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
 
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-            await asyncio.sleep(2)
 
             # Если возраст подтвержден, переходим к следующему вопросу
             if approve_inf:
@@ -213,7 +212,6 @@ async def resident_callback(call: CallbackQuery, state: FSMContext) -> None:
 
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-            await asyncio.sleep(2)
 
             # Логика для резидента
             if approve_inf:

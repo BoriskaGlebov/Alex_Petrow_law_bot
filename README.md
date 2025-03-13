@@ -16,18 +16,18 @@ Alex Petrow Law Bot — это Telegram-бот для сбора и обрабо
 Перед запуском необходимо создать `.env` файл со следующими параметрами:
 
 ```ini
-DB_USER=some_user
-DB_PASSWORD=some_password
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=tlg_bot
-BOT_TOKEN=7824055801:AAFRcMRSncPHjGA4-uAQ8KH5HDtsbtWqYXE
-ADMIN_IDS=[439653349]
-BASE_DIR=/home/user/PycharmProjects/Alex_Petrow_law_bot
-REDIS_LOGIN=default
-REDIS_PASSWORD=password
-REDIS_HOST=localhost
-NUM_DB=0
+DB_USER = some_user # здесь указать своего пользователся
+DB_PASSWORD = some_password # здесь указать пароль
+DB_HOST = db
+DB_PORT = 5432
+DB_NAME = tlg_bot
+BOT_TOKEN = 7824055801:№№№№№№№№№№№№№ # свой токен бот
+ADMIN_IDS = [439653349,7864309617] список админов
+BASE_DIR = /Alex_Petrow_law_bot
+REDIS_LOGIN = default
+REDIS_PASSWORD = password
+REDIS_HOST = redis
+NUM_DB = 0
 ```
 
 ### 2. Запуск через Docker
