@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 import re
 
+
 class TelegramIDModel(BaseModel):
     """
     Базовая модель для хранения идентификатора пользователя в Telegram.
@@ -10,6 +11,7 @@ class TelegramIDModel(BaseModel):
     Атрибуты:
         telegram_id (int): Уникальный идентификатор пользователя в Telegram.
     """
+
     telegram_id: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -38,7 +40,7 @@ class UpdateNumberSchema(BaseModel):
         None,
         description="Номер телефона пользователя в международном формате (+71234567890), поддерживает форматы: +7XXXXXXXXXX или 8XXXXXXXXXX",
         min_length=10,
-        max_length=16
+        max_length=16,
     )
 
     @field_validator("phone_number")
@@ -73,4 +75,6 @@ class UpdateNumberSchema(BaseModel):
         elif phone_number.startswith("8") and re.fullmatch(r"8\d{10}", phone_number):
             return "+7" + phone_number[1:]  # Заменяем 8 на +7
         else:
-            raise ValueError("Некорректный номер телефона. Используйте формат +71234567890 или 8XXXXXXXXXX.")
+            raise ValueError(
+                "Некорректный номер телефона. Используйте формат +71234567890 или 8XXXXXXXXXX."
+            )

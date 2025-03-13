@@ -11,7 +11,7 @@ from bot.faq.router import faq_router
 from bot.help.router import help_router
 from bot.other_handler.router import other_router
 from bot.users.router import user_router
-from bot.utils.commands import  set_bot_commands
+from bot.utils.commands import set_bot_commands
 from bot.utils.set_description_file import set_description
 
 
@@ -30,9 +30,11 @@ async def start_bot():
     await set_description(bot=bot)
     for admin_id in admins:
         try:
-            await bot.send_message(admin_id, 'Я запущен🥳.')
+            await bot.send_message(admin_id, "Я запущен🥳.")
         except Exception as e:
-            logger.bind(user=admin_id).error(f"Не удалось отправить сообщение админу {admin_id}: {e}")
+            logger.bind(user=admin_id).error(
+                f"Не удалось отправить сообщение админу {admin_id}: {e}"
+            )
             pass
     logger.info("Бот успешно запущен.")
 
@@ -47,9 +49,11 @@ async def stop_bot():
     """
     try:
         for admin_id in admins:
-            await bot.send_message(admin_id, 'Бот остановлен. За что?😔')
+            await bot.send_message(admin_id, "Бот остановлен. За что?😔")
     except Exception as e:
-        logger.bind(user=admin_id).error(f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}")
+        logger.bind(user=admin_id).error(
+            f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}"
+        )
         pass
     logger.error("Бот остановлен!")
 

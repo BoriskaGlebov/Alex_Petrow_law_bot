@@ -14,8 +14,15 @@ def get_refer_id_or_none(command_args: str, user_id: int) -> int | None:
         int | None: Если аргумент команды является валидным реферальным ID (целое число, больше 0 и не равное user_id),
                     то возвращается этот ID. Иначе возвращается None.
     """
-    return int(command_args) if command_args and command_args.isdigit() and int(command_args) > 0 and int(
-        command_args) != user_id else None
+    return (
+        int(command_args)
+        if command_args
+        and command_args.isdigit()
+        and int(command_args) > 0
+        and int(command_args) != user_id
+        else None
+    )
+
 
 def normalize_phone_number(phone: str) -> str:
     """

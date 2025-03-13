@@ -16,7 +16,9 @@ class BaseDAO(Generic[T]):
     model: Type[T]  # Тип модели, которой управляет этот DAO
 
     @classmethod
-    async def find_one_or_none_by_id(cls, data_id: int, session: AsyncSession) -> Optional[T]:
+    async def find_one_or_none_by_id(
+        cls, data_id: int, session: AsyncSession
+    ) -> Optional[T]:
         """
         Находит запись по ID.
 
@@ -42,7 +44,9 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def find_one_or_none(cls, session: AsyncSession, filters: BaseModel) -> Optional[T]:
+    async def find_one_or_none(
+        cls, session: AsyncSession, filters: BaseModel
+    ) -> Optional[T]:
         """
         Находит одну запись по фильтрам.
 
@@ -54,7 +58,9 @@ class BaseDAO(Generic[T]):
             Optional[T]: Найденная запись или None.
         """
         filter_dict = filters.model_dump(exclude_unset=True)
-        logger.info(f"Поиск одной записи {cls.model.__name__} по фильтрам: {filter_dict}")
+        logger.info(
+            f"Поиск одной записи {cls.model.__name__} по фильтрам: {filter_dict}"
+        )
         try:
             query = select(cls.model).filter_by(**filter_dict)
             result = await session.execute(query)
@@ -81,7 +87,9 @@ class BaseDAO(Generic[T]):
             List[T]: Список найденных записей.
         """
         filter_dict = filters.model_dump(exclude_unset=True)
-        logger.info(f"Поиск всех записей {cls.model.__name__} по фильтрам: {filter_dict}")
+        logger.info(
+            f"Поиск всех записей {cls.model.__name__} по фильтрам: {filter_dict}"
+        )
         try:
             query = select(cls.model).filter_by(**filter_dict)
             result = await session.execute(query)
@@ -89,7 +97,9 @@ class BaseDAO(Generic[T]):
             logger.info(f"Найдено {len(records)} записей.")
             return records
         except SQLAlchemyError as e:
-            logger.error(f"Ошибка при поиске всех записей по фильтрам {filter_dict}: {e}")
+            logger.error(
+                f"Ошибка при поиске всех записей по фильтрам {filter_dict}: {e}"
+            )
             raise
 
     @classmethod
@@ -105,7 +115,9 @@ class BaseDAO(Generic[T]):
             T: Добавленная запись.
         """
         values_dict = values.model_dump(exclude_unset=True)
-        logger.info(f"Добавление записи {cls.model.__name__} с параметрами: {values_dict}")
+        logger.info(
+            f"Добавление записи {cls.model.__name__} с параметрами: {values_dict}"
+        )
         new_instance = cls.model(**values_dict)
         session.add(new_instance)
         try:
@@ -118,7 +130,9 @@ class BaseDAO(Generic[T]):
         return new_instance
 
     @classmethod
-    async def add_many(cls, session: AsyncSession, instances: List[BaseModel]) -> List[T]:
+    async def add_many(
+        cls, session: AsyncSession, instances: List[BaseModel]
+    ) -> List[T]:
         """
         Добавляет несколько записей в базу данных.
 
@@ -130,7 +144,9 @@ class BaseDAO(Generic[T]):
             List[T]: Список добавленных записей.
         """
         values_list = [item.model_dump(exclude_unset=True) for item in instances]
-        logger.info(f"Добавление нескольких записей {cls.model.__name__}. Количество: {len(values_list)}")
+        logger.info(
+            f"Добавление нескольких записей {cls.model.__name__}. Количество: {len(values_list)}"
+        )
         new_instances = [cls.model(**values) for values in values_list]
         session.add_all(new_instances)
         try:
@@ -143,7 +159,9 @@ class BaseDAO(Generic[T]):
         return new_instances
 
     @classmethod
-    async def update(cls, session: AsyncSession, filters: BaseModel, values: BaseModel) -> int:
+    async def update(
+        cls, session: AsyncSession, filters: BaseModel, values: BaseModel
+    ) -> int:
         """
         Обновляет записи по фильтрам.
 
@@ -157,7 +175,9 @@ class BaseDAO(Generic[T]):
         """
         filter_dict = filters.model_dump(exclude_unset=True)
         values_dict = values.model_dump(exclude_unset=True)
-        logger.info(f"Обновление записей {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}")
+        logger.info(
+            f"Обновление записей {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}"
+        )
         query = (
             sqlalchemy_update(cls.model)
             .where(*[getattr(cls.model, k) == v for k, v in filter_dict.items()])
@@ -216,7 +236,9 @@ class BaseDAO(Generic[T]):
             int: Количество записей.
         """
         filter_dict = filters.model_dump(exclude_unset=True)
-        logger.info(f"Подсчет количества записей {cls.model.__name__} по фильтру: {filter_dict}")
+        logger.info(
+            f"Подсчет количества записей {cls.model.__name__} по фильтру: {filter_dict}"
+        )
         try:
             query = select(func.count(cls.model.id)).filter_by(**filter_dict)
             result = await session.execute(query)
@@ -228,8 +250,13 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def paginate(cls, session: AsyncSession, page: int = 1, page_size: int = 10, filters: BaseModel = None) -> \
-    List[T]:
+    async def paginate(
+        cls,
+        session: AsyncSession,
+        page: int = 1,
+        page_size: int = 10,
+        filters: BaseModel = None,
+    ) -> List[T]:
         """
         Пагинирует записи по фильтрам.
 
@@ -244,10 +271,13 @@ class BaseDAO(Generic[T]):
         """
         filter_dict = filters.model_dump(exclude_unset=True) if filters else {}
         logger.info(
-            f"Пагинация записей {cls.model.__name__} по фильтру: {filter_dict}, страница: {page}, размер страницы: {page_size}")
+            f"Пагинация записей {cls.model.__name__} по фильтру: {filter_dict}, страница: {page}, размер страницы: {page_size}"
+        )
         try:
             query = select(cls.model).filter_by(**filter_dict)
-            result = await session.execute(query.offset((page - 1) * page_size).limit(page_size))
+            result = await session.execute(
+                query.offset((page - 1) * page_size).limit(page_size)
+            )
             records = result.scalars().all()
             logger.info(f"Найдено {len(records)} записей на странице {page}.")
             return records
@@ -279,7 +309,9 @@ class BaseDAO(Generic[T]):
             raise
 
     @classmethod
-    async def upsert(cls, session: AsyncSession, unique_fields: List[str], values: BaseModel) -> T:
+    async def upsert(
+        cls, session: AsyncSession, unique_fields: List[str], values: BaseModel
+    ) -> T:
         """
         Создает запись или обновляет существующую.
 
@@ -292,11 +324,15 @@ class BaseDAO(Generic[T]):
             T: Созданная или обновленная запись.
         """
         values_dict = values.model_dump(exclude_unset=True)
-        filter_dict = {field: values_dict[field] for field in unique_fields if field in values_dict}
+        filter_dict = {
+            field: values_dict[field] for field in unique_fields if field in values_dict
+        }
 
         logger.info(f"Upsert для {cls.model.__name__}")
         try:
-            existing = await cls.find_one_or_none(session, BaseModel.construct(**filter_dict))
+            existing = await cls.find_one_or_none(
+                session, BaseModel.construct(**filter_dict)
+            )
             if existing:
                 # Обновляем существующую запись
                 for key, value in values_dict.items():
@@ -333,13 +369,13 @@ class BaseDAO(Generic[T]):
             updated_count = 0
             for record in records:
                 record_dict = record.model_dump(exclude_unset=True)
-                if 'id' not in record_dict:
+                if "id" not in record_dict:
                     continue
 
-                update_data = {k: v for k, v in record_dict.items() if k != 'id'}
+                update_data = {k: v for k, v in record_dict.items() if k != "id"}
                 stmt = (
                     sqlalchemy_update(cls.model)
-                    .filter_by(id=record_dict['id'])
+                    .filter_by(id=record_dict["id"])
                     .values(**update_data)
                 )
                 result = await session.execute(stmt)

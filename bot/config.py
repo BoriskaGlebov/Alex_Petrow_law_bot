@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     Методы:
         get_db_url() -> str: Возвращает URL для подключения к базе данных.
     """
+
     DB_USER: str
     DB_PASSWORD: SecretStr
     DB_HOST: str
@@ -65,9 +66,7 @@ class Settings(BaseSettings):
 
         :return: URL базы данных в формате строки.
         """
-        return (
-            f"redis://{self.REDIS_LOGIN}:{self.REDIS_PASSWORD.get_secret_value()}@{self.REDIS_HOST}:6379/{self.NUM_DB}"
-        )
+        return f"redis://{self.REDIS_LOGIN}:{self.REDIS_PASSWORD.get_secret_value()}@{self.REDIS_HOST}:6379/{self.NUM_DB}"
 
 
 # Получаем параметры для загрузки переменных среды
@@ -76,7 +75,9 @@ settings = Settings()
 storage = RedisStorage.from_url(settings.get_redis_url())
 
 # Инициализируем бота и диспетчер
-bot = Bot(token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(
+    token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 # Это если работать без Redis
 # dp = Dispatcher(storage=MemoryStorage())
 dp = Dispatcher(storage=storage)
@@ -109,11 +110,11 @@ logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-           "<level>{level:^8}</level> - "
-           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-           "<yellow>{function}</yellow> - "
-           "<white>{message}</white> <magenta>{extra[filename]:^10}</magenta>"
-           "<magenta>{extra[user]:^10}</magenta>",
+    "<level>{level:^8}</level> - "
+    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+    "<yellow>{function}</yellow> - "
+    "<white>{message}</white> <magenta>{extra[filename]:^10}</magenta>"
+    "<magenta>{extra[user]:^10}</magenta>",
     filter=lambda record: user_filter(record) or filename_filter(record),
     catch=True,
     diagnose=True,
@@ -126,10 +127,10 @@ logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-           "<level>{level:^8}</level> - "
-           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-           "<yellow>{function}</yellow> - "
-           "<white>{message}</white>",
+    "<level>{level:^8}</level> - "
+    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+    "<yellow>{function}</yellow> - "
+    "<white>{message}</white>",
     filter=default_filter,  # Показывает только если нет extra["user"] и extra["filename"]
     catch=True,
     diagnose=True,
@@ -153,9 +154,17 @@ logger.add(
 )
 
 # Тестирование фильтров
-if __name__ == '__main__':
-    logger.error("Лог без bind (должен попасть в stdout без фильтра)")  # Только в stdout
-    logger.bind(filename="log.txt").error("Лог с filename (должен попасть в файл)")  # Только в файл
-    logger.bind(user="boris").error("Лог с user (должен попасть в stdout)")  # Только в stdout
-    logger.bind(filename="log.txt", user="boris").error("Лог с обоими (должен попасть в stdout и файл)")  # Везде
+if __name__ == "__main__":
+    logger.error(
+        "Лог без bind (должен попасть в stdout без фильтра)"
+    )  # Только в stdout
+    logger.bind(filename="log.txt").error(
+        "Лог с filename (должен попасть в файл)"
+    )  # Только в файл
+    logger.bind(user="boris").error(
+        "Лог с user (должен попасть в stdout)"
+    )  # Только в stdout
+    logger.bind(filename="log.txt", user="boris").error(
+        "Лог с обоими (должен попасть в stdout и файл)"
+    )  # Везде
     print(type(settings.ADMIN_IDS))

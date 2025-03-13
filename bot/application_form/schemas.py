@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 
@@ -39,6 +38,7 @@ class PhotoModelSchema(BaseModel):
         file_id (str): Идентификатор файла фотографии в Telegram.
         application_id (int): Идентификатор заявки, к которой привязана фотография.
     """
+
     file_id: str  # ID файла фотографии (например, Telegram file_id)
     application_id: int  # ID заявки, к которой привязана фотография
 
@@ -51,6 +51,7 @@ class VideoModelSchema(BaseModel):
         file_id (str): Идентификатор файла видео в Telegram.
         application_id (int): Идентификатор заявки, к которой привязано видео.
     """
+
     file_id: str  # ID файла видео (например, Telegram file_id)
     application_id: int  # ID заявки, к которой привязано видео
 
@@ -64,6 +65,7 @@ class BankDebtModelSchema(BaseModel):
         total_amount (float): Общая сумма задолженности.
         application_id (int): Идентификатор заявки, к которой привязана задолженность.
     """
+
     bank_name: str  # Название банка
     total_amount: float  # Общая сумма задолженности
     application_id: int  # ID заявки, к которой привязана задолженность

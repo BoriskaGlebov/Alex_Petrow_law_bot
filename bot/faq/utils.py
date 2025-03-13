@@ -1,7 +1,9 @@
 from bot.faq.models import Questions
 
 
-def update_cache(old_questions: dict[int, Questions], new_questions: dict[int, Questions]) -> dict[int, Questions]:
+def update_cache(
+    old_questions: dict[int, Questions], new_questions: dict[int, Questions]
+) -> dict[int, Questions]:
     """
     Обновляет кеш вопросов, заменяя старые данные новыми.
 

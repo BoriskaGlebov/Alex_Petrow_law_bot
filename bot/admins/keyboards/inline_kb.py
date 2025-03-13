@@ -9,7 +9,9 @@ def admin_keyboard() -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def approve_admin_keyboard(approve: str, dismiss: str, user_id: int, application_id: int) -> InlineKeyboardMarkup:
+def approve_admin_keyboard(
+    approve: str, dismiss: str, user_id: int, application_id: int
+) -> InlineKeyboardMarkup:
     """
     Создает inline-клавиатуру с кастомными текстами для кнопок подтверждения и отклонения.
 
@@ -28,8 +30,14 @@ def approve_admin_keyboard(approve: str, dismiss: str, user_id: int, application
     builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
 
     # Добавляем кнопки с кастомными текстами и соответствующими callback_data
-    builder.button(text=f'✅ {approve}', callback_data=f'approve_admin_True_{user_id}_{application_id}')
-    builder.button(text=f'❌ {dismiss}', callback_data=f'approve_admin_False_{user_id}_{application_id}')
+    builder.button(
+        text=f"✅ {approve}",
+        callback_data=f"approve_admin_True_{user_id}_{application_id}",
+    )
+    builder.button(
+        text=f"❌ {dismiss}",
+        callback_data=f"approve_admin_False_{user_id}_{application_id}",
+    )
 
     # Настроим клавиатуру, чтобы кнопки располагались в одном ряду
     builder.adjust(2)

@@ -1,6 +1,10 @@
 from aiogram.types import BotCommand, BotCommandScopeDefault, BotCommandScopeChat
 from aiogram.exceptions import TelegramBadRequest
-from bot.config import bot, settings, logger  # Убедись, что settings.ADMIN_IDS содержит ID админов
+from bot.config import (
+    bot,
+    settings,
+    logger,
+)  # Убедись, что settings.ADMIN_IDS содержит ID админов
 
 # Команды для обычных пользователей
 user_commands: list[BotCommand] = [
@@ -31,10 +35,14 @@ async def set_bot_commands() -> None:
     # Устанавливаем команды для администраторов
     for admin_id in settings.ADMIN_IDS:
         try:
-            await bot.set_my_commands(admin_commands, scope=BotCommandScopeChat(chat_id=admin_id))
+            await bot.set_my_commands(
+                admin_commands, scope=BotCommandScopeChat(chat_id=admin_id)
+            )
         except TelegramBadRequest as e:
             if "chat not found" in str(e):
-                logger.bind(user=admin_id).error(f"⚠️  Ошибка: у администратора {admin_id} не начат чат с ботом.")
+                logger.bind(user=admin_id).error(
+                    f"⚠️  Ошибка: у администратора {admin_id} не начат чат с ботом."
+                )
                 # print(f"⚠️  Ошибка: у администратора {admin_id} не начат чат с ботом.")
             else:
                 raise  # Пробрасываем другие ошибки

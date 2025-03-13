@@ -25,8 +25,8 @@ class Answering(StatesGroup):
 
 
 # Обработчик команды '/faq' и текстового сообщения 'База знаний'
-@faq_router.message(Command('faq'))
-@faq_router.message(F.text.contains('База знаний'))
+@faq_router.message(Command("faq"))
+@faq_router.message(F.text.contains("База знаний"))
 @connection()
 async def faq_start(message: Message, session, state: FSMContext, **kwargs) -> None:
     """
@@ -54,27 +54,36 @@ async def faq_start(message: Message, session, state: FSMContext, **kwargs) -> N
         async with ChatActionSender.typing(bot=message.bot, chat_id=message.chat.id):
             # Получаем все вопросы из базы данных
             questions_filter = QuestionFilter()
-            questions_answers = await QuestionsDAO.find_all(session=session, filters=questions_filter)
+            questions_answers = await QuestionsDAO.find_all(
+                session=session, filters=questions_filter
+            )
 
             # Кэшируем вопросы в памяти для быстрого доступа
             update_cache(questions_cache, {q.id: q for q in questions_answers})
 
             # Отправляем пользователю сообщение с вопросами и кнопками
-            await message.answer("Частые вопросы:", reply_markup=faq_inline_keyboard(list(questions_cache.values())))
+            await message.answer(
+                "Частые вопросы:",
+                reply_markup=faq_inline_keyboard(list(questions_cache.values())),
+            )
             await state.set_state(Answering.check)
 
     except TelegramBadRequest as e:
         # Логируем ошибку Telegram
         logger.error(f"Telegram error при выполнении команды /faq: {e}")
-        await message.answer("Произошла ошибка при отправке сообщения. Попробуйте снова позже.")
+        await message.answer(
+            "Произошла ошибка при отправке сообщения. Попробуйте снова позже."
+        )
     except Exception as e:
         # Логируем общие ошибки
         logger.error(f"Ошибка при выполнении команды /faq: {e}")
-        await message.answer("Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.")
+        await message.answer(
+            "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже."
+        )
 
 
 # Обработчик для получения ответа на выбранный вопрос
-@faq_router.callback_query(F.data.startswith('qst_'), Answering.check)
+@faq_router.callback_query(F.data.startswith("qst_"), Answering.check)
 async def faq_callback(call: CallbackQuery) -> None:
     """
     Обработчик коллбек-запроса для выбора ответа на вопрос из списка.
@@ -101,7 +110,7 @@ async def faq_callback(call: CallbackQuery) -> None:
         await call.answer(text="Смотрю", show_alert=False)
 
         # Извлекаем ID вопроса из данных коллбека
-        qst_id: int = int(call.data.replace('qst_', ''))
+        qst_id: int = int(call.data.replace("qst_", ""))
 
         # Получаем данные вопроса из кэша
         qst_data: QuestionsDAO = questions_cache.get(qst_id)
@@ -109,14 +118,19 @@ async def faq_callback(call: CallbackQuery) -> None:
         if qst_data:
             # Конвертируем данные вопроса в словарь
             qst_data_dict = qst_data.to_dict()
-            msg_text = f'Ответ на вопрос: {qst_data_dict["question"]}\n\n' \
-                       f'<b>{qst_data_dict["answer"]}</b>\n\n' \
-                       f'Выбери другой вопрос:'
+            msg_text = (
+                f"Ответ на вопрос: {qst_data_dict['question']}\n\n"
+                f"<b>{qst_data_dict['answer']}</b>\n\n"
+                f"Выбери другой вопрос:"
+            )
 
             # Проверяем, совпадает ли новый текст с текущим
             current_text: str = call.message.text
             if current_text != msg_text:
-                await call.message.edit_text(msg_text, reply_markup=faq_inline_keyboard(list(questions_cache.values())))
+                await call.message.edit_text(
+                    msg_text,
+                    reply_markup=faq_inline_keyboard(list(questions_cache.values())),
+                )
 
         else:
             await call.message.answer("Ответ на данный вопрос не найден.")
@@ -131,7 +145,7 @@ async def faq_callback(call: CallbackQuery) -> None:
 
 
 # Обработчик для перехода назад в основное меню
-@faq_router.callback_query(F.data.startswith('back_home'), Answering.check)
+@faq_router.callback_query(F.data.startswith("back_home"), Answering.check)
 async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
     """
     Обработчик коллбек-запроса для перехода назад в главное меню.
@@ -154,7 +168,9 @@ async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer()
 
         # Отправляем сообщение с основным меню
-        await call.message.answer("Выберите один из пунктов меню 👇", reply_markup=main_kb())
+        await call.message.answer(
+            "Выберите один из пунктов меню 👇", reply_markup=main_kb()
+        )
 
         # Очищаем состояние пользователя
         await state.clear()
@@ -164,4 +180,6 @@ async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
         logger.error(f"Ошибка при переходе назад в главное меню: {e}")
 
         # Информируем пользователя об ошибке
-        await call.message.answer("Произошла ошибка при возвращении в главное меню. Попробуйте снова.")
+        await call.message.answer(
+            "Произошла ошибка при возвращении в главное меню. Попробуйте снова."
+        )

@@ -35,17 +35,35 @@ class Application(Base):
     """
 
     id: Mapped[int_pk]
-    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    status: Mapped[ApplicationStatus] = mapped_column(Enum(ApplicationStatus), default=ApplicationStatus.PENDING,
-                                                      nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    status: Mapped[ApplicationStatus] = mapped_column(
+        Enum(ApplicationStatus), default=ApplicationStatus.PENDING, nullable=False
+    )
     text_application: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     admin_message_ids: Mapped[Dict[int, int]] = mapped_column(JSON, default=dict)
     owner: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     user = relationship("User", back_populates="applications", lazy="selectin")
-    photos = relationship("Photo", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
-    videos = relationship("Video", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
-    debts = relationship("BankDebt", back_populates="application", cascade="all, delete-orphan", lazy="selectin")
+    photos = relationship(
+        "Photo",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    videos = relationship(
+        "Video",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    debts = relationship(
+        "BankDebt",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
 
 class Photo(Base):
@@ -58,9 +76,12 @@ class Photo(Base):
     """
 
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
-    file_id: Mapped[str] = mapped_column(String, nullable=False, unique=False)  # ID файла в Telegram
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"),
-                                                nullable=False)  # ID заявки
+    file_id: Mapped[str] = mapped_column(
+        String, nullable=False, unique=False
+    )  # ID файла в Telegram
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), nullable=False
+    )  # ID заявки
 
     # Связь с заявкой
     application = relationship("Application", back_populates="photos")
@@ -76,9 +97,12 @@ class Video(Base):
     """
 
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
-    file_id: Mapped[str] = mapped_column(String, nullable=False, unique=False)  # ID файла в Telegram
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"),
-                                                nullable=False)  # ID заявки
+    file_id: Mapped[str] = mapped_column(
+        String, nullable=False, unique=False
+    )  # ID файла в Telegram
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), nullable=False
+    )  # ID заявки
 
     # Связь с заявкой
     application = relationship("Application", back_populates="videos")
@@ -96,9 +120,12 @@ class BankDebt(Base):
 
     id: Mapped[int_pk]  # Уникальный идентификатор записи (PK)
     bank_name: Mapped[str] = mapped_column(String, nullable=False)  # Название банка
-    total_amount: Mapped[float] = mapped_column(BigInteger, nullable=False)  # Сумма задолженности
-    application_id: Mapped[int] = mapped_column(ForeignKey("applications.id", ondelete="CASCADE"),
-                                                nullable=False)  # ID заявки
+    total_amount: Mapped[float] = mapped_column(
+        BigInteger, nullable=False
+    )  # Сумма задолженности
+    application_id: Mapped[int] = mapped_column(
+        ForeignKey("applications.id", ondelete="CASCADE"), nullable=False
+    )  # ID заявки
 
     # Связь с заявкой
     application = relationship("Application", back_populates="debts")

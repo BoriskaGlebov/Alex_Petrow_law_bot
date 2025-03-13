@@ -19,8 +19,12 @@ class Questions(Base):
     """
 
     id: Mapped[int_pk]
-    question: Mapped[str] = mapped_column(String, nullable=False)  # Текст вопроса (обязательное поле)
-    answer: Mapped[str] = mapped_column(String, nullable=False)  # Текст ответа (обязательное поле)
+    question: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # Текст вопроса (обязательное поле)
+    answer: Mapped[str] = mapped_column(
+        String, nullable=False
+    )  # Текст ответа (обязательное поле)
 
     def __repr__(self):
         """
@@ -30,4 +34,6 @@ class Questions(Base):
         Пример:
         <Question(id=1, question='Как работает бот?', answer='Бот выполняет команды пользователя.')>
         """
-        return f"<Question(id={self.id}, question={self.question}, answer={self.answer})>"
+        return (
+            f"<Question(id={self.id}, question={self.question}, answer={self.answer})>"
+        )

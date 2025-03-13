@@ -14,5 +14,6 @@ class QuestionsDAO(BaseDAO[Questions]):
         model (Type[Questions]): Модель, с которой работает данный DAO (в данном случае, таблица вопросов и ответов).
     """
 
-    model: Type[Questions] = Questions  # Модель для работы с данными вопросов и ответов.
-
+    model: Type[Questions] = (
+        Questions  # Модель для работы с данными вопросов и ответов.
+    )

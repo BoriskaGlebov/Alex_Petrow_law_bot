@@ -30,6 +30,7 @@ class ApplicationDAO(BaseDAO[Application]):
         - update(id: int, data: dict) -> Application: Обновляет заявку по идентификатору.
         - delete(id: int) -> None: Удаляет заявку по идентификатору.
     """
+
     model: Application = Application  # Тип данных модели для работы с заявками
 
     @classmethod
@@ -45,7 +46,9 @@ class ApplicationDAO(BaseDAO[Application]):
             T: Добавленная запись.
         """
         values_dict = values
-        logger.info(f"Добавление записи {cls.model.__name__} с параметрами: {values_dict}")
+        logger.info(
+            f"Добавление записи {cls.model.__name__} с параметрами: {values_dict}"
+        )
         new_instance = cls.model(**values_dict)
         session.add(new_instance)
         try:
@@ -112,14 +115,20 @@ class ApplicationDAO(BaseDAO[Application]):
         filter_dict = filters
         values_dict = values
 
-        logger.info(f"Обновление записей в {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}")
+        logger.info(
+            f"Обновление записей в {cls.model.__name__} по фильтру: {filter_dict} с параметрами: {values_dict}"
+        )
 
         # Формируем запрос для обновления
         query = (
             sqlalchemy_update(cls.model)
-            .where(*[getattr(cls.model, k) == v for k, v in filter_dict.items()])  # Применяем фильтры
+            .where(
+                *[getattr(cls.model, k) == v for k, v in filter_dict.items()]
+            )  # Применяем фильтры
             .values(**values_dict)  # Устанавливаем новые значения
-            .execution_options(synchronize_session="fetch")  # Обновляем с синхронизацией сессии
+            .execution_options(
+                synchronize_session="fetch"
+            )  # Обновляем с синхронизацией сессии
         )
 
         try:
@@ -159,6 +168,7 @@ class PhotoDAO(BaseDAO[Photo]):
         - update(id: int, data: dict) -> Photo: Обновляет фотографию по идентификатору.
         - delete(id: int) -> None: Удаляет фотографию по идентификатору.
     """
+
     model: Photo = Photo  # Тип данных модели для работы с фотографиями
 
 
@@ -185,6 +195,7 @@ class VideoDAO(BaseDAO[Video]):
         - update(id: int, data: dict) -> Video: Обновляет видеофайл по идентификатору.
         - delete(id: int) -> None: Удаляет видеофайл по идентификатору.
     """
+
     model: Video = Video  # Тип данных модели для работы с видеофайлами
 
 
@@ -211,4 +222,5 @@ class BankDebtDAO(BaseDAO[BankDebt]):
         - update(id: int, data: dict) -> BankDebt: Обновляет задолженность по идентификатору.
         - delete(id: int) -> None: Удаляет задолженность по идентификатору.
     """
+
     model: BankDebt = BankDebt  # Тип данных модели для работы с задолженностями

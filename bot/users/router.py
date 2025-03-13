@@ -27,7 +27,7 @@ class CheckForm(StatesGroup):
     resident = State()
 
 
-@user_router.message(Command('admin'))
+@user_router.message(Command("admin"))
 async def admin_start(message: Message, state: FSMContext, **kwargs: Any) -> None:
     """
     Обрабатывает команду /admin, очищает состояние пользователя и сообщает о том,
@@ -56,12 +56,16 @@ async def admin_start(message: Message, state: FSMContext, **kwargs: Any) -> Non
     except Exception as e:
         # Логируем ошибку
         logger.error(f"Ошибка при выполнении команды /admin: {e}")
-        await message.answer("Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.")
+        await message.answer(
+            "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже."
+        )
 
 
 @user_router.message(CommandStart())
 @connection()
-async def cmd_start(message: Message, command: CommandObject, session, state: FSMContext, **kwargs) -> None:
+async def cmd_start(
+    message: Message, command: CommandObject, session, state: FSMContext, **kwargs
+) -> None:
     """
     Обработчик команды /start для Telegram-бота. Проверяет, существует ли пользователь в базе данных,
     и если нет — регистрирует нового пользователя, привязывая его к реферальному ID (если он передан).
@@ -98,8 +102,9 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
             # Проверяем, существует ли уже пользователь в базе данных
-            user_info = await UserDAO.find_one_or_none(session=session,
-                                                       filters=TelegramIDModel(telegram_id=user_id))
+            user_info = await UserDAO.find_one_or_none(
+                session=session, filters=TelegramIDModel(telegram_id=user_id)
+            )
 
             # Если пользователь уже существует, отправляем сообщение
             if user_info:
@@ -110,34 +115,42 @@ async def cmd_start(message: Message, command: CommandObject, session, state: FS
                 await state.set_state(CheckForm.age)
             else:
                 # Определяем реферальный ID, если он был передан
-                ref_id: Optional[int] = get_refer_id_or_none(command_args=command.args, user_id=user_id)
+                ref_id: Optional[int] = get_refer_id_or_none(
+                    command_args=command.args, user_id=user_id
+                )
 
                 # Создаем нового пользователя и добавляем его в базу данных
-                values = UserModel(telegram_id=user_id,
-                                   username=message.from_user.username,
-                                   first_name=message.from_user.first_name,
-                                   last_name=message.from_user.last_name,
-                                   referral_id=ref_id)
+                values = UserModel(
+                    telegram_id=user_id,
+                    username=message.from_user.username,
+                    first_name=message.from_user.first_name,
+                    last_name=message.from_user.last_name,
+                    referral_id=ref_id,
+                )
                 await UserDAO.add(session=session, values=values)
 
                 # Формируем сообщение для пользователя, в зависимости от реферального ID
-                ref_message = f" Вы успешно закреплены за пользователем с ID {ref_id}" if ref_id else ""
+                # ref_message = f" Вы успешно закреплены за пользователем с ID {ref_id}" if ref_id else ""
                 response_message = msg1
                 follow_up_message = msg2 + msg3 + msg4
                 reply_markup = approve_keyboard("Да", "Нет")
                 await state.set_state(CheckForm.age)
 
         # Отправляем все сообщения
-        await message.answer(response_message,reply_markup=ReplyKeyboardRemove())
+        await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
         await message.answer(follow_up_message, reply_markup=reply_markup)
 
     except Exception as e:
         # Логируем ошибку
-        logger.error(f"Ошибка при выполнении команды /start для пользователя {message.from_user.id}: {e}")
-        await message.answer("Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже.")
+        logger.error(
+            f"Ошибка при выполнении команды /start для пользователя {message.from_user.id}: {e}"
+        )
+        await message.answer(
+            "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже."
+        )
 
 
-@user_router.callback_query(F.data.startswith('approve_'), CheckForm.age)
+@user_router.callback_query(F.data.startswith("approve_"), CheckForm.age)
 async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
     """
     Обработчик callback-запросов для проверки возраста пользователя.
@@ -158,7 +171,7 @@ async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer(text="Проверяю ввод", show_alert=False)
 
         # Обработка данных из callback
-        approve_inf = call.data.replace('approve_', '')
+        approve_inf = call.data.replace("approve_", "")
         approve_inf = True if approve_inf == "True" else False
 
         # Удаляем сообщение и клавиатуру с вопросом
@@ -166,20 +179,23 @@ async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
 
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-
             # Если возраст подтвержден, переходим к следующему вопросу
             if approve_inf:
                 await state.update_data(age=approve_inf)
-                await bot.send_message(chat_id=call.message.chat.id,
-                                       text='Вы являетесь налоговым резидентом Российской Федерации?🇷🇺',
-                                       reply_markup=approve_keyboard("Да", "Нет"))
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="Вы являетесь налоговым резидентом Российской Федерации?🇷🇺",
+                    reply_markup=approve_keyboard("Да", "Нет"),
+                )
                 await state.set_state(CheckForm.resident)
 
             # Если возраст не подтвержден, очищаем данные и сообщаем пользователю
             else:
                 await state.clear()
-                await bot.send_message(chat_id=call.message.chat.id,
-                                       text="К сожалению мы не предоставляем услуги лицам младше 🔞 18 лет!")
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="К сожалению мы не предоставляем услуги лицам младше 🔞 18 лет!",
+                )
 
     except Exception as e:
         # Логируем ошибку
@@ -187,7 +203,7 @@ async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
 
 
-@user_router.callback_query(F.data.startswith('approve_'), CheckForm.resident)
+@user_router.callback_query(F.data.startswith("approve_"), CheckForm.resident)
 async def resident_callback(call: CallbackQuery, state: FSMContext) -> None:
     """
     Обработчик callback-запросов для проверки налогового резидентства пользователя.
@@ -206,25 +222,28 @@ async def resident_callback(call: CallbackQuery, state: FSMContext) -> None:
     try:
         # Ответ на запрос и удаление сообщения
         await call.answer(text="Проверяю ввод", show_alert=False)
-        approve_inf = call.data.replace('approve_', '')
+        approve_inf = call.data.replace("approve_", "")
         approve_inf = True if approve_inf == "True" else False
         await call.message.delete()
 
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-
             # Логика для резидента
             if approve_inf:
                 await state.update_data(resident=approve_inf)
-                await bot.send_message(chat_id=call.message.chat.id,
-                                       text='Отлично, выберите один из представленных вариантов 👇',
-                                       reply_markup=main_kb())
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="Отлично, выберите один из представленных вариантов 👇",
+                    reply_markup=main_kb(),
+                )
                 await state.clear()  # Очищаем состояние после завершения анкеты
             else:
                 # Логика для не-резидента
                 await state.clear()
-                await bot.send_message(chat_id=call.message.chat.id,
-                                       text="К сожалению, мы 🧑‍🎓 не работаем с налоговыми резидентами других стран.")
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="К сожалению, мы 🧑‍🎓 не работаем с налоговыми резидентами других стран.",
+                )
 
     except Exception as e:
         # Логируем ошибку
@@ -251,10 +270,14 @@ async def mistakes_handler(message: Message, state: FSMContext) -> None:
     try:
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
-            await asyncio.sleep(2)  # Немного подождем, чтобы пользователь видел индикатор
+            await asyncio.sleep(
+                2
+            )  # Немного подождем, чтобы пользователь видел индикатор
 
             # Отправляем сообщение с просьбой выбрать кнопку
-            await message.answer("Пожалуйста, выберите один из вариантов, нажав на кнопку 👆")
+            await message.answer(
+                "Пожалуйста, выберите один из вариантов, нажав на кнопку 👆"
+            )
 
     except Exception as e:
         # Логируем ошибку

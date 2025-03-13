@@ -64,4 +64,9 @@ class User(Base):
     """
 
     # Двусторонняя связь с Application
-    applications = relationship("Application", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    applications = relationship(
+        "Application",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )

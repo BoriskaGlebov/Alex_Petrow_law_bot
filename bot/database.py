@@ -3,7 +3,12 @@ from functools import wraps
 from typing import Any
 
 from sqlalchemy import func
-from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncAttrs,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from typing_extensions import Annotated
 
@@ -20,7 +25,9 @@ async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit
 # настройка аннотаций
 int_pk = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
 created_at = Annotated[datetime, mapped_column(server_default=func.now())]
-updated_at = Annotated[datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)]
+updated_at = Annotated[
+    datetime, mapped_column(server_default=func.now(), onupdate=datetime.now)
+]
 str_uniq = Annotated[str, mapped_column(unique=True, nullable=False)]
 str_null_true = Annotated[str, mapped_column(nullable=True)]
 
@@ -48,7 +55,9 @@ def connection(isolation_level: str = None):
                 try:
                     # Устанавливаем уровень изоляции, если передан
                     if isolation_level:
-                        await session.execute(f"SET TRANSACTION ISOLATION LEVEL {isolation_level}")
+                        await session.execute(
+                            f"SET TRANSACTION ISOLATION LEVEL {isolation_level}"
+                        )
 
                     # Передаём сессию в декорированный метод
                     return await method(*args, session=session, **kwargs)

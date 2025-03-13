@@ -19,7 +19,7 @@ def extract_number(text: str) -> Optional[int]:
         extract_number("Цена: 150 рублей") -> 150
         extract_number("Нет чисел здесь") -> None
     """
-    match = re.search(r'\b(\d+)\b', text)
+    match = re.search(r"\b(\d+)\b", text)
     if match:
         return int(match.group(1))
     else:

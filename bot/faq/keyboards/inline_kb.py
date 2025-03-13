@@ -25,13 +25,15 @@ def faq_inline_keyboard(questions: list[Questions]) -> InlineKeyboardMarkup:
 
     # Добавляем кнопки для каждого вопроса
     for el in questions:
-        builder.button(text=el.question, callback_data=f'qst_{el.id}')
+        builder.button(text=el.question, callback_data=f"qst_{el.id}")
 
     # Добавляем кнопку "На главную" в конце
-    builder.row(InlineKeyboardButton(
-        text='На главную',
-        callback_data='back_home',
-    ))
+    builder.row(
+        InlineKeyboardButton(
+            text="На главную",
+            callback_data="back_home",
+        )
+    )
 
     # Создаем правила распределения кнопок по строкам
     # buttons_rule = [2 for _ in questions[::2]]  # Каждые две кнопки в строке

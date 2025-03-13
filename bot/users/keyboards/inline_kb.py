@@ -25,8 +25,8 @@ def approve_keyboard(approve: str, dismiss: str) -> InlineKeyboardMarkup:
     builder: InlineKeyboardBuilder = InlineKeyboardBuilder()
 
     # Добавляем кнопки
-    builder.button(text=f'✅ {approve}', callback_data='approve_True')
-    builder.button(text=f'❌ {dismiss}', callback_data='approve_False')
+    builder.button(text=f"✅ {approve}", callback_data="approve_True")
+    builder.button(text=f"❌ {dismiss}", callback_data="approve_False")
 
     # Делаем клавиатуру в один ряд по 2 кнопки
     builder.adjust(2)

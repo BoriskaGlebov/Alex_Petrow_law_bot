@@ -1,6 +1,4 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
-
 
 
 # def back_keyboard() -> ReplyKeyboardMarkup:
@@ -34,7 +32,6 @@ def main_kb(user_telegram_id: int = None) -> ReplyKeyboardMarkup:
     kb_list = [
         [KeyboardButton(text="📝 Вывод заблокированных средств")],
         [KeyboardButton(text="📖 База знаний")],
-
         # Закомментировано, можно добавить в зависимости от потребностей
         # [KeyboardButton(text="👤 Профиль"),
         #  KeyboardButton(text="📚 Каталог")]
@@ -45,7 +42,9 @@ def main_kb(user_telegram_id: int = None) -> ReplyKeyboardMarkup:
     #     kb_list.append([KeyboardButton(text="⚙️ Админ панель")])
 
     # Создаем и возвращаем клавиатуру с параметрами
-    keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True
+    )
     return keyboard
 
 
@@ -60,5 +59,5 @@ def phone_kb() -> ReplyKeyboardMarkup:
         keyboard=[[KeyboardButton(text="📞 Поделиться номером", request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True,
-        input_field_placeholder="Нажмите кнопку ниже, чтобы отправить номер телефона"
+        input_field_placeholder="Нажмите кнопку ниже, чтобы отправить номер телефона",
     )

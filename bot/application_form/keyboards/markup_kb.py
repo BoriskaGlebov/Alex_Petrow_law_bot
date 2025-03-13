@@ -2,7 +2,6 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 
-
 def back_keyboard() -> ReplyKeyboardMarkup:
     kb = ReplyKeyboardBuilder()
     kb.button(text="Кнопка текстового меню")
@@ -10,7 +9,7 @@ def back_keyboard() -> ReplyKeyboardMarkup:
     return kb.as_markup(resize_keyboard=True)
 
 
-def main_kb(user_telegram_id: int=None) -> ReplyKeyboardMarkup:
+def main_kb(user_telegram_id: int = None) -> ReplyKeyboardMarkup:
     """
     Формирует клавиатуру для главного меню бота.
 
@@ -32,9 +31,10 @@ def main_kb(user_telegram_id: int=None) -> ReplyKeyboardMarkup:
     """
     # Список кнопок на главной клавиатуре
     kb_list = [
-        [KeyboardButton(text="📖 База знаний"),
-         KeyboardButton(text="📝 Создать заявку"),
-         ],
+        [
+            KeyboardButton(text="📖 База знаний"),
+            KeyboardButton(text="📝 Создать заявку"),
+        ],
         # Закомментировано, можно добавить в зависимости от потребностей
         # [KeyboardButton(text="👤 Профиль"),
         #  KeyboardButton(text="📚 Каталог")]
@@ -45,5 +45,7 @@ def main_kb(user_telegram_id: int=None) -> ReplyKeyboardMarkup:
     #     kb_list.append([KeyboardButton(text="⚙️ Админ панель")])
 
     # Создаем и возвращаем клавиатуру с параметрами
-    keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True
+    )
     return keyboard
