@@ -1,14 +1,14 @@
 import asyncio
-from typing import Optional, Any
+from typing import Any, Optional
 
 from aiogram import F
-from aiogram.filters import CommandObject, CommandStart, Command
+from aiogram.dispatcher.router import Router
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from aiogram.utils.chat_action import ChatActionSender
 from loguru import logger
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
-from aiogram.dispatcher.router import Router
 
 import bot.application_form.dao
 from bot.config import bot
@@ -64,7 +64,7 @@ async def admin_start(message: Message, state: FSMContext, **kwargs: Any) -> Non
 @user_router.message(CommandStart())
 @connection()
 async def cmd_start(
-        message: Message, command: CommandObject, session, state: FSMContext, **kwargs
+    message: Message, command: CommandObject, session, state: FSMContext, **kwargs
 ) -> None:
     """
     Обработчик команды /start для Telegram-бота. Проверяет, существует ли пользователь в базе данных,
@@ -115,7 +115,9 @@ async def cmd_start(
                 await state.set_state(CheckForm.age)
 
                 # Отправляем все сообщения
-                await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
+                await message.answer(
+                    response_message, reply_markup=ReplyKeyboardRemove()
+                )
                 await message.answer(follow_up_message, reply_markup=reply_markup)
             else:
                 # Определяем реферальный ID, если он был передан
@@ -141,7 +143,9 @@ async def cmd_start(
                 await state.set_state(CheckForm.age)
 
                 # Отправляем все сообщения
-                await message.answer(response_message, reply_markup=ReplyKeyboardRemove())
+                await message.answer(
+                    response_message, reply_markup=ReplyKeyboardRemove()
+                )
                 await asyncio.sleep(0.5)
                 await message.answer(follow_up_message[0])
                 await asyncio.sleep(0.5)

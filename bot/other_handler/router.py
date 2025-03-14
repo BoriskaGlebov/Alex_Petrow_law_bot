@@ -1,13 +1,14 @@
 from aiogram import F
+from aiogram.dispatcher.router import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
 from aiogram.utils.chat_action import ChatActionSender
 from loguru import logger
-from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
-from aiogram.dispatcher.router import Router
 
 import bot.application_form.dao
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard
+from bot.application_form.dao import ApplicationDAO
 from bot.application_form.models import Application
 from bot.config import bot, settings
 from bot.database import connection
@@ -15,7 +16,6 @@ from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import main_kb
 from bot.users.schemas import TelegramIDModel
-from bot.application_form.dao import ApplicationDAO
 
 other_router = Router()
 

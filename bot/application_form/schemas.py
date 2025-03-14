@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-
 # class ApplicationStatusSchema(str, Enum):  # Наследуем str, чтобы Pydantic понимал его как строку
 #     PENDING = "pending"
 #     APPROVED = "approved"

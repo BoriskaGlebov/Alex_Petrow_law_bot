@@ -1,8 +1,8 @@
 from aiogram import F
-from aiogram.exceptions import TelegramBadRequest
-from loguru import logger
-from aiogram.types import CallbackQuery
 from aiogram.dispatcher.router import Router
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.types import CallbackQuery
+from loguru import logger
 
 import bot.application_form.dao
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard

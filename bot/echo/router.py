@@ -1,7 +1,7 @@
 from aiogram import F
-from loguru import logger
-from aiogram.types import Message
 from aiogram.dispatcher.router import Router
+from aiogram.types import Message
+from loguru import logger
 
 echo_router = Router()
 

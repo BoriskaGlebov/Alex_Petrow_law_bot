@@ -1,10 +1,10 @@
-from typing import Optional, Dict
+from enum import Enum as PyEnum
+from typing import Dict, Optional
 
-from sqlalchemy import Enum, ForeignKey, String, BigInteger, JSON, Boolean
+from sqlalchemy import JSON, BigInteger, Boolean, Enum, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from bot.database import Base, int_pk
-from enum import Enum as PyEnum
 
 
 class ApplicationStatus(PyEnum):

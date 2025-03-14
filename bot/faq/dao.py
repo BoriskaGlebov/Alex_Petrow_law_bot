@@ -1,4 +1,5 @@
 from typing import Type
+
 from bot.dao.base import BaseDAO
 from bot.faq.models import Questions
 

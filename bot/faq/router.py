@@ -1,12 +1,12 @@
 from aiogram import F
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.utils.chat_action import ChatActionSender
-from loguru import logger
-from aiogram.types import Message, CallbackQuery
 from aiogram.dispatcher.router import Router
 from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import CallbackQuery, Message
+from aiogram.utils.chat_action import ChatActionSender
+from loguru import logger
 
 from bot.database import connection
 from bot.faq.dao import QuestionsDAO

@@ -1,30 +1,30 @@
 import asyncio
 import re
-from typing import Optional, List
+from typing import List, Optional
 
 from aiogram import F
+from aiogram.dispatcher.router import Router
 from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.utils.chat_action import ChatActionSender
-from loguru import logger
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
-    Message,
     CallbackQuery,
-    ReplyKeyboardRemove,
+    InputMedia,
     InputMediaPhoto,
     InputMediaVideo,
-    InputMedia,
+    Message,
+    ReplyKeyboardRemove,
 )
-from aiogram.dispatcher.router import Router
+from aiogram.utils.chat_action import ChatActionSender
+from loguru import logger
 
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard
-from bot.application_form.dao import ApplicationDAO, VideoDAO, BankDebtDAO, PhotoDAO
+from bot.application_form.dao import ApplicationDAO, BankDebtDAO, PhotoDAO, VideoDAO
 from bot.application_form.keyboards.inline_kb import owner_keyboard
 from bot.application_form.models import Application, ApplicationStatus
 from bot.application_form.schemas import (
+    BankDebtModelSchema,
     PhotoModelSchema,
     VideoModelSchema,
-    BankDebtModelSchema,
 )
 from bot.config import bot, settings
 from bot.database import connection

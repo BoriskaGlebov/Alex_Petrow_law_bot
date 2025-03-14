@@ -1,11 +1,10 @@
 import asyncio
+
 from loguru import logger
 
 from bot.admins.router import admin_router
-
 from bot.application_form.router import application_form_router
-
-from bot.config import bot, admins, dp
+from bot.config import admins, bot, dp
 from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
