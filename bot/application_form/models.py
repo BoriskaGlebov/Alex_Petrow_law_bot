@@ -8,9 +8,9 @@ from bot.database import Base, int_pk
 
 
 class ApplicationStatus(PyEnum):
-    PENDING = "pending"  # Ожидает обработки
-    APPROVED = "approved"  # Одобрена
-    REJECTED = "rejected"  # Отклонена
+    PENDING = "Ожидание"  # Ожидает обработки
+    APPROVED = "Принято"  # Одобрена
+    REJECTED = "Отклонено"  # Отклонена
 
 
 class Application(Base):
@@ -24,6 +24,7 @@ class Application(Base):
         text_application (Optional[str]): Текстовое описание заявки (может быть пустым).
         admin_message_ids (Dict[int, int]): Словарь соответствий admin_id → message_id.
         owner (bool): Флаг, указывающий, является ли пользователь владельцем заявки (по умолчанию True).
+        can_contact (bool): Флаг, указывающий, может ли администратор связаться с пользователем по данной заявке (по умолчанию True).
         user (User): Связь с пользователем, создавшим заявку.
         photos (List[Photo]): Связь с фотографиями, прикрепленными к заявке.
         videos (List[Video]): Связь с видеозаписями, прикрепленными к заявке.
@@ -43,7 +44,8 @@ class Application(Base):
     )
     text_application: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     admin_message_ids: Mapped[Dict[int, int]] = mapped_column(JSON, default=dict)
-    owner: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    owner: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    can_contact: Mapped[bool] = mapped_column(Boolean, nullable=True)
 
     user = relationship("User", back_populates="applications", lazy="selectin")
     photos = relationship(

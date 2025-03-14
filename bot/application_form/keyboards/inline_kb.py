@@ -16,3 +16,9 @@ def owner_keyboard() -> InlineKeyboardMarkup:
     builder.button(text="❎ Средства клиенты", callback_data="owner_False")
     builder.adjust(2)
     return builder.as_markup()
+def can_contact_keyboard() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="❎ Могу", callback_data="can_contact_True")
+    builder.button(text="❎ Не могу", callback_data="can_contact_False")
+    builder.adjust(2)
+    return builder.as_markup()

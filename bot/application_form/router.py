@@ -19,7 +19,7 @@ from loguru import logger
 
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard
 from bot.application_form.dao import ApplicationDAO, BankDebtDAO, PhotoDAO, VideoDAO
-from bot.application_form.keyboards.inline_kb import owner_keyboard
+from bot.application_form.keyboards.inline_kb import owner_keyboard, can_contact_keyboard
 from bot.application_form.models import Application, ApplicationStatus
 from bot.application_form.schemas import (
     BankDebtModelSchema,
@@ -57,7 +57,7 @@ class ApplicationForm(StatesGroup):
 @application_form_router.message(F.text.contains("Вывод заблокированных средств"))
 @connection()
 async def application_form_start(
-    message: Message, state: FSMContext, session, **kwargs
+        message: Message, state: FSMContext, session, **kwargs
 ) -> None:
     """
     Обработчик команды, запускающий процесс подачи заявки на вывод заблокированных средств.
@@ -245,7 +245,7 @@ async def owner_callback(call: CallbackQuery, state: FSMContext) -> None:
                     await bot.send_message(
                         chat_id=call.message.chat.id,
                         text=message,
-                        reply_markup=approve_keyboard("ДА", "Нет"),
+                        reply_markup=can_contact_keyboard(),
                     )
 
     except Exception as e:
@@ -256,7 +256,7 @@ async def owner_callback(call: CallbackQuery, state: FSMContext) -> None:
 
 
 @application_form_router.callback_query(
-    F.data.startswith("approve_"), ApplicationForm.can_contact
+    F.data.startswith("can_contact_"), ApplicationForm.can_contact
 )
 async def can_contact_callback(call: CallbackQuery, state: FSMContext) -> None:
     """
@@ -279,32 +279,32 @@ async def can_contact_callback(call: CallbackQuery, state: FSMContext) -> None:
         await call.message.delete()
 
         # Обработка данных из callback_data
-        can_contact_inf = call.data.replace("approve_", "")
+        can_contact_inf = call.data.replace("can_contact_", "")
         can_contact_inf = True if can_contact_inf == "True" else False
-
+        logger.error(can_contact_inf)
         # Обновление данных в контексте состояния
         await state.update_data(can_contact=can_contact_inf)
         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
             # Список сообщений для отправки в чат с пользователем
-            if can_contact_inf:
+            if can_contact_inf or not can_contact_inf:
                 messages = [
                     "Приложите фото 2-3 страниц паспорта и фото 📸 страницы с адресом регистрации."
                 ]
                 # Переход к следующему состоянию для загрузки фото
                 await state.set_state(ApplicationForm.photo)
-            else:
-                messages = [
-                    "Как только у вас появится возможность связаться с пользователем, приходите снова."
-                ]
-                # Убираем клавиатуру
-                await call.message.answer(
-                    text="До свидания!", reply_markup=ReplyKeyboardRemove()
-                )
-                # Очищаем состояние
-                await state.clear()
-
+            # else:
+            #     messages = [
+            #         "Как только у вас появится возможность связаться с пользователем, приходите снова."
+            #     ]
+            #     # Убираем клавиатуру
+            #     await call.message.answer(
+            #         text="До свидания!", reply_markup=ReplyKeyboardRemove()
+            #     )
+            #     # Очищаем состояние
+            #     await state.clear()
+            #
             for message in messages:
-                await asyncio.sleep(1)  # Имитация времени на ввод каждого сообщения
+                # await asyncio.sleep(1)  # Имитация времени на ввод каждого сообщения
                 await bot.send_message(chat_id=call.message.chat.id, text=message)
 
     except Exception as e:
@@ -753,6 +753,7 @@ async def photo_callback_final(call: CallbackQuery, state: FSMContext, session) 
                     user_data.get("check_state", "PENDING")
                 )
                 owner: Optional[bool] = user_data.get("owner", None)
+                can_contact: Optional[bool] = user_data.get("can_contact", None)
                 video_id: Optional[str] = user_data.get(
                     "video", None
                 )  # Тип данных: Optional[str]
@@ -766,7 +767,7 @@ async def photo_callback_final(call: CallbackQuery, state: FSMContext, session) 
 
                 # Создаем заявку в БД
                 application_model = Application(
-                    user_id=user_info.id, status=status, owner=owner
+                    user_id=user_info.id, status=status, owner=owner, can_contact=can_contact
                 )
                 application: Application = await ApplicationDAO.add(
                     session=session, values=application_model.to_dict()
@@ -801,11 +802,20 @@ async def photo_callback_final(call: CallbackQuery, state: FSMContext, session) 
 
                 # Подготовка текста для сообщения
                 response_message: str = f"Спасибо! Ваша заявка № {application.id} успешно оформлена. \n\nСтатус заявки: 🟡 {application.status.value}\n\n"
-                response_message += (
-                    "Собственные счета - ДА\n\n"
-                    if application.owner
-                    else "Собственные счета - Нет\n\n"
-                )
+
+                if application.owner is not None:
+                    response_message += (
+                        "Собственные счета - ДА\n\n"
+                        if application.owner
+                        else "Собственные счета - Нет\n\n"
+                    )
+                if (application.owner is not None) and application.owner is not True:
+                    response_message += (
+                        "Может связаться с собственником счета - ДА\n\n"
+                        if application.can_contact
+                        else "Может связаться с собственником счета - Нет\n\n"
+                    )
+
                 # Если есть задолженности по банкам, добавляем информацию о них
                 if bank_name and total_amount:
                     response_message += "Задолженности по банкам:\n"
@@ -952,7 +962,7 @@ async def photo_callback_final(call: CallbackQuery, state: FSMContext, session) 
 )
 @connection()
 async def approve_form_callback(
-    call: CallbackQuery, state: FSMContext, session
+        call: CallbackQuery, state: FSMContext, session
 ) -> None:
     """
     Обрабатывает callback-запрос пользователя, одобряющего форму заявки.
@@ -982,12 +992,13 @@ async def approve_form_callback(
         user_applications = await UserDAO.find_one_or_none(
             session=session, filters=user_id
         )
-
+        for el in user_applications.applications:
+            print(el)
         if not user_applications or not user_applications.applications:
             raise ValueError("Нет доступных заявок для пользователя.")
 
         last_appl: Application = user_applications.applications[-1]
-
+        print(last_appl.id)
         if approve_form_inf:
             # Если пользователь согласен с данными в форме
             await state.clear()  # Очищаем состояние FSM
@@ -1022,7 +1033,12 @@ async def approve_form_callback(
                 if last_appl.owner
                 else "Собственные счета - Нет\n\n"
             )
-
+            if not last_appl.owner and last_appl.can_contact is not None:
+                response_message += (
+                    "Может связаться с собственником счета - ДА\n\n"
+                    if last_appl.can_contact
+                    else "Может связаться с собственником счета - Нет\n\n"
+                )
             # Добавляем задолженности по банкам, если они есть
             if last_appl.debts:
                 response_message += "Задолженности по банкам:\n"
@@ -1073,7 +1089,7 @@ async def approve_form_callback(
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение
             await state.clear()
-            await ApplicationDAO.delete(session=session, filters=last_appl.to_dict())
+            await ApplicationDAO.delete(session=session, filters={"id":last_appl.id})
             await bot.send_message(
                 chat_id=call.message.chat.id,
                 text="Необходимо начать сначала создавать заявку",

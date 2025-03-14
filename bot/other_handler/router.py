@@ -29,7 +29,7 @@ class OtherHandler(StatesGroup):
 @other_router.message(F.text, OtherHandler.other_question)
 @connection()
 async def other_question_message(
-    message: Message, session, state: FSMContext, **kwargs
+        message: Message, session, state: FSMContext, **kwargs
 ) -> None:
     """
     Обработчик для получения текстового сообщения от пользователя, оформления заявки и отправки подтверждения.
@@ -106,7 +106,7 @@ async def other_question_message(
 @other_router.callback_query(F.data.startswith("approve_"), OtherHandler.approve_form)
 @connection()
 async def approve_form_callback(
-    call: CallbackQuery, state: FSMContext, session
+        call: CallbackQuery, state: FSMContext, session
 ) -> None:
     """
     Обрабатывает callback-запрос пользователя, одобряющего форму заявки.
@@ -132,8 +132,8 @@ async def approve_form_callback(
         await call.answer(text="Проверяю ввод", show_alert=False)
 
         # Получаем ответ на запрос для одобрения или отклонения формы
-        approve_form_inf: bool = call.data.replace("approve_", "") == "True"
-
+        approve_form_inf: str = call.data.replace("approve_", "")
+        approve_form_inf = True if approve_form_inf == "True" else False
         # Удаляем клавиатуру из сообщения
         await call.message.edit_reply_markup(reply_markup=None)
 
@@ -142,7 +142,6 @@ async def approve_form_callback(
         user_applications = await UserDAO.find_one_or_none(
             session=session, filters=user_id
         )
-
         if not user_applications or not user_applications.applications:
             raise ValueError("Нет доступных заявок для пользователя.")
 
@@ -170,7 +169,7 @@ async def approve_form_callback(
                     )
             except Exception as e:
                 logger.error(
-                    f"Не удалось отправить сообщение админу {admin_id} об остановке бота: {e}"
+                    f"Не удалось отправить сообщение админу {admin_id} об созадании заявки ботом администратору: {e}"
                 )
                 pass
 
@@ -211,7 +210,7 @@ async def approve_form_callback(
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение
             await state.clear()
-            await ApplicationDAO.delete(session=session, filters=last_appl.to_dict())
+            await ApplicationDAO.delete(session=session, filters={"id":last_appl.id})
             await bot.send_message(
                 chat_id=call.message.chat.id,
                 text="Необходимо начать сначала создавать заявку",

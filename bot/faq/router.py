@@ -14,6 +14,7 @@ from bot.faq.keyboards.inline_kb import faq_inline_keyboard
 from bot.faq.schemas import QuestionFilter
 from bot.faq.utils import update_cache
 from bot.users.keyboards.markup_kb import main_kb
+from bot.users.router import CheckForm
 
 faq_router = Router()
 # Глобальный кэш для хранения вопросов и ответов

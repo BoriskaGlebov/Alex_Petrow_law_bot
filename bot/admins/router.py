@@ -34,14 +34,27 @@ async def admin_application_callback(call: CallbackQuery, session) -> None:
             await ApplicationDAO.update(
                 session=session,
                 filters={"id": application_id},
-                values={"status": ApplicationStatus("approved")},
+                values={"status": ApplicationStatus("Принято")},
             )
             application = await ApplicationDAO.find_one_or_none_by_id(
                 data_id=application_id, session=session
             )
             response_message: str = f"Заявка № {application_id}\n\nСтатус заявки: 🟢 {application.status.value}\n\n"
-
+            if application.owner is not None:
+                response_message += (
+                    "Собственные счета - ДА\n\n"
+                    if application.owner
+                    else "Собственные счета - Нет\n\n"
+                )
+            if not application.owner and application.owner is not None and application.can_contact is not None:
+                response_message += (
+                    "Может связаться с собственником счета - ДА\n\n"
+                    if application.can_contact
+                    else "Может связаться с собственником счета - Нет\n\n"
+                )
             # Добавляем задолженности по банкам, если они есть
+            if application.text_application:
+                response_message += f"Ваш вопрос:\n{application.text_application}"
             if application.debts:
                 response_message += "Задолженности по банкам:\n"
                 for debt in application.debts:
@@ -70,25 +83,38 @@ async def admin_application_callback(call: CallbackQuery, session) -> None:
             # await call.message.edit_text(response_message,
             #                              reply_markup=approve_admin_keyboard('Берем', 'Отказ', user_id, application_id))
 
-            await bot.send_message(
-                chat_id=call.from_user.id,
-                text="Вот ты что-то выбрал как админ а у пользователя ничего",
-            )
+            # await bot.send_message(
+            #     chat_id=call.from_user.id,
+            #     text="Вот ты что-то выбрал как админ а у пользователя ничего",
+            # )
             await bot.send_message(
                 chat_id=user_id,
-                text=f"Статус заказа поменялcя на 🟢 {application.status.value} - принята в работу ",
+                text=f"Статус заказа № {application_id} поменялcя на 🟢 {application.status.value}",
             )
         else:
             await ApplicationDAO.update(
                 session=session,
                 filters={"id": application_id},
-                values={"status": ApplicationStatus("rejected")},
+                values={"status": ApplicationStatus("Отклонено")},
             )
             application = await ApplicationDAO.find_one_or_none_by_id(
                 data_id=application_id, session=session
             )
-            response_message: str = f"Заявка № {application_id}\n\nСтатус заявки: 🔴 {application.status.value} - отклонена\n\n"
-
+            response_message: str = f"Заявка № {application_id}\n\nСтатус заявки: 🔴 {application.status.value}\n\n"
+            if application.owner is not None:
+                response_message += (
+                    "Собственные счета - ДА\n\n"
+                    if application.owner
+                    else "Собственные счета - Нет\n\n"
+                )
+            if not application.owner and application.owner is not None and application.can_contact is not None:
+                response_message += (
+                    "Может связаться с собственником счета - ДА\n\n"
+                    if application.can_contact
+                    else "Может связаться с собственником счета - Нет\n\n"
+                )
+            if application.text_application:
+                response_message += f"Ваш вопрос:\n{application.text_application}"
             # Добавляем задолженности по банкам, если они есть
             if application.debts:
                 response_message += "Задолженности по банкам:\n"
@@ -116,13 +142,13 @@ async def admin_application_callback(call: CallbackQuery, session) -> None:
 
             # await call.message.edit_text(response_message,
             #                              reply_markup=approve_admin_keyboard('Берем', 'Отказ', user_id, application_id))
-            await bot.send_message(
-                chat_id=call.from_user.id,
-                text="Вот ты чтото выбрал как админ а у пользователя ничего",
-            )
+            # await bot.send_message(
+            #     chat_id=call.from_user.id,
+            #     text="Вот ты чтото выбрал как админ а у пользователя ничего",
+            # )
             await bot.send_message(
                 chat_id=user_id,
-                text=f"Статус заказа поменялcя на 🔴 {application.status.value} ",
+                text=f"Статус заказа № {application_id} поменялcя на 🔴 {application.status.value} ",
             )
 
     except TelegramBadRequest:

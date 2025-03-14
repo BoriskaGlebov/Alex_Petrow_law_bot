@@ -28,7 +28,6 @@ async def help_cmd(message: Message, state: FSMContext) -> None:
                 if message.from_user.id in settings.ADMIN_IDS
                 else user_commands
             )
-            if cmd.command != "admin"
         ]
 
         await state.clear()

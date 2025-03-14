@@ -51,6 +51,7 @@ services:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD} # Еще нужно явно указать пароль в config
+      - TZ=Europe/Moscow
     healthcheck:
       test: [ "CMD-SHELL", "redis-cli -a $REDIS_PASSWORD ping" ]
       #      test: ["CMD-SHELL", "redis-cli ping"]
@@ -67,33 +68,34 @@ services:
     networks:
       - monitoring_net
 
-  bot:
-    build:
-      context: .  # Контекст указывает на корень проекта
-      dockerfile: Dockerfile  # Имя Dockerfile, если отличается от стандартного
-
-    container_name: bot
-    restart: always
-    #    environment:
-    #      - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}  # Добавьте переменные окружения для бота
-    #      - DB_USER=${DB_USER}
-    #      - DB_PASSWORD=${DB_PASSWORD}
-    #      - DB_NAME=${DB_NAME}
-    #      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    ports:
-      - "8000:8000"  # Если у вас используется HTTP сервер (например, FastAPI)
-    depends_on:
-      - db
-      - redis
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          memory: 128M
-    networks:
-      - monitoring_net
+#  bot:
+#    build:
+#      context: .  # Контекст указывает на корень проекта
+#      dockerfile: Dockerfile  # Имя Dockerfile, если отличается от стандартного
+#
+#    container_name: bot
+#    restart: always
+#    environment:
+#      TZ: Europe/Moscow
+#    #      - TELEGRAM_API_TOKEN=${TELEGRAM_API_TOKEN}  # Добавьте переменные окружения для бота
+#    #      - DB_USER=${DB_USER}
+#    #      - DB_PASSWORD=${DB_PASSWORD}
+#    #      - DB_NAME=${DB_NAME}
+#    #      - REDIS_PASSWORD=${REDIS_PASSWORD}
+#    ports:
+#      - "8000:8000"  # Если у вас используется HTTP сервер (например, FastAPI)
+#    depends_on:
+#      - db
+#      - redis
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.5'
+#          memory: 512M
+#        reservations:
+#          memory: 128M
+#    networks:
+#      - monitoring_net
 
 volumes:
   pg_data:
