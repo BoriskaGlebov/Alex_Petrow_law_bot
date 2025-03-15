@@ -10,6 +10,8 @@ from bot.config import (
 # Команды для обычных пользователей
 user_commands: list[BotCommand] = [
     BotCommand(command="start", description="🏎  Старт работы с приложением"),
+    BotCommand(command="unblock", description="🔐 Вывод заблокированных средств"),
+    BotCommand(command="question", description="📝 Свой вопрос?"),
     BotCommand(command="faq", description="🗂  Ответы на часто задаваемые вопросы!"),
     BotCommand(command="help", description="⁉️  Описание функций"),
 ]
@@ -17,6 +19,8 @@ user_commands: list[BotCommand] = [
 # Команды для администраторов
 admin_commands: list[BotCommand] = [
     BotCommand(command="start", description="🏎  Старт работы с приложением"),
+    BotCommand(command="unblock", description="🔐 Вывод заблокированных средств"),
+    BotCommand(command="question", description="📝 Свой вопрос?"),
     BotCommand(command="admin", description="👀  Админ, жду заявки"),
     BotCommand(command="faq", description="🗂  Ответы на часто задаваемые вопросы!"),
     BotCommand(command="help", description="⁉️  Описание функций"),

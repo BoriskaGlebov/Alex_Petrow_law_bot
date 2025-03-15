@@ -51,6 +51,7 @@ class ApplicationForm(StatesGroup):
     new_bank = State()
     video = State()
     approve_form = State()
+    phone_number = State()
 
 
 # @application_form_router.message(Command('application_form'))
@@ -103,6 +104,7 @@ async def application_form_start(
                     " - 8XXXXXXXXXX ",
                     reply_markup=phone_kb(),  # Предлагаем клавиатуру с вариантами
                 )
+                await state.set_state(ApplicationForm.phone_number)
     except Exception as e:
         # Логируем ошибку, если она возникла
         logger.error(
@@ -1089,7 +1091,7 @@ async def approve_form_callback(
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение
             await state.clear()
-            await ApplicationDAO.delete(session=session, filters={"id":last_appl.id})
+            await ApplicationDAO.delete(session=session, filters={"id": last_appl.id})
             await bot.send_message(
                 chat_id=call.message.chat.id,
                 text="Необходимо начать сначала создавать заявку",
@@ -1103,7 +1105,7 @@ async def approve_form_callback(
 
 
 @application_form_router.message(
-    lambda message: message.contact is not None or message.text is not None
+    lambda message: message.contact is not None or message.text is not None, ApplicationForm.can_contact
 )
 @connection()
 async def handle_contact(message: Message, state: FSMContext, session) -> None:
@@ -1115,7 +1117,6 @@ async def handle_contact(message: Message, state: FSMContext, session) -> None:
     """
 
     user_id = message.from_user.id
-
     if message.contact:  # Если номер пришел через кнопку
         phone_number = message.contact.phone_number
     else:  # Если пользователь ввел номер вручную
@@ -1139,7 +1140,7 @@ async def handle_contact(message: Message, state: FSMContext, session) -> None:
         session=session, filters=TelegramIDModel(telegram_id=user_id)
     )
 
-    if existing_user:
+    if existing_user and (existing_user.phone_number is None):
         await UserDAO.update(
             filters=TelegramIDModel(telegram_id=user_id),
             values=UpdateNumberSchema(phone_number=normalized_phone),

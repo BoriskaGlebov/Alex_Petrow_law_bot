@@ -8,13 +8,15 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.chat_action import ChatActionSender
 from loguru import logger
 
+from bot.application_form.router import approve_work_callback
+from bot.config import bot
 from bot.database import connection
 from bot.faq.dao import QuestionsDAO
 from bot.faq.keyboards.inline_kb import faq_inline_keyboard
 from bot.faq.schemas import QuestionFilter
 from bot.faq.utils import update_cache
 from bot.users.keyboards.markup_kb import main_kb
-from bot.users.router import CheckForm
+from bot.users.utils import mistakes_handler
 
 faq_router = Router()
 # Глобальный кэш для хранения вопросов и ответов
@@ -23,6 +25,7 @@ questions_cache = {}
 
 class Answering(StatesGroup):
     check = State()
+    control_mistake = State()
 
 
 # Обработчик команды '/faq' и текстового сообщения 'База знаний'
@@ -174,7 +177,7 @@ async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
         )
 
         # Очищаем состояние пользователя
-        await state.clear()
+        await state.set_state(Answering.control_mistake)
 
     except Exception as e:
         # Логируем ошибку
@@ -184,3 +187,14 @@ async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
         await call.message.answer(
             "Произошла ошибка при возвращении в главное меню. Попробуйте снова."
         )
+
+
+@faq_router.message(F.text, Answering.control_mistake)
+@faq_router.message(F.text, Answering.check)
+async def mistakes_handler_faq(message: Message, state: FSMContext) -> None:
+    st = await state.get_state()
+    if st == "Answering:check":
+        await mistakes_handler(message=message, bot=bot, state=state, )
+    elif st == "Answering:control_mistake":
+        await mistakes_handler(message=message, bot=bot, state=state,
+                               answer="Пожалуйста, выберите один из вариантов, нажав на кнопку 👇")

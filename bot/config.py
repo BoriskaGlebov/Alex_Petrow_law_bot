@@ -76,7 +76,7 @@ settings = Settings()
 storage = RedisStorage.from_url(settings.get_redis_url())
 
 # Инициализируем бота и диспетчер
-bot = Bot(
+bot:Bot = Bot(
     token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 # Это если работать без Redis
@@ -87,7 +87,7 @@ admins = settings.ADMIN_IDS
 
 def user_filter(record: dict) -> bool:
     """Фильтр для логгера, проверяющий наличие ключа 'user' в extra данных."""
-    return bool(record["extra"].get("user"))
+    return bool(record["extra"].get("user") and (record["extra"].get("user") != "-"))
 
 
 def filename_filter(record: dict) -> bool:
@@ -97,26 +97,33 @@ def filename_filter(record: dict) -> bool:
 
 def default_filter(record: dict) -> bool:
     """Фильтр для логов без bind (если нет user и filename)."""
-    return not (record["extra"].get("user") or record["extra"].get("filename"))
+    # return not (record["extra"].get("user") or record["extra"].get("f
+    # Для отладкиilename"))
+    if record["extra"].get("user") == "-":
+        return True
+    else:
+        return not record["extra"].get("user")
 
 
 # Удаляем все существующие обработчики
 logger.remove()
 
 # Глобальная конфигурация extra (но она не будет работать, если bind не передаст данные)
-logger.configure(extra={"ip": "", "user": "", "filename": ""})
+# logger.configure(extra={"ip": "-", "user": "-", "filename": "-"})
+logger.configure(extra={"user": "-", })
 # TODO установи адекватный уровень логирования
 # Настройка логирования для stdout (Только если есть user или filename)
 logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-    "<level>{level:^8}</level> - "
-    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-    "<yellow>{function}</yellow> - "
-    "<white>{message}</white> <magenta>{extra[filename]:^10}</magenta>"
-    "<magenta>{extra[user]:^10}</magenta>",
-    filter=lambda record: user_filter(record) or filename_filter(record),
+           "<level>{level:^8}</level> - "
+           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+           "<yellow>{function}</yellow> - "
+           "<white>{message}</white>"
+           "<magenta>{extra[user]:^10}</magenta>",
+    # filter=lambda record: user_filter(record) or filename_filter(record),
+    filter=user_filter,
     catch=True,
     diagnose=True,
     enqueue=True,
@@ -128,10 +135,10 @@ logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-    "<level>{level:^8}</level> - "
-    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-    "<yellow>{function}</yellow> - "
-    "<white>{message}</white>",
+           "<level>{level:^8}</level> - "
+           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+           "<yellow>{function}</yellow> - "
+           "<white>{message}</white>",
     filter=default_filter,  # Показывает только если нет extra["user"] и extra["filename"]
     catch=True,
     diagnose=True,
@@ -144,28 +151,24 @@ log_file_path = os.path.join(settings.BASE_DIR or ".", "file.log")
 logger.add(
     log_file_path,
     level="DEBUG",
-    format="{time:YYYY-MM-DD HH:mm:ss} - {level} - {name}:{line} - {function} - {message} {extra[filename]}",
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
+           "<level>{level:^8}</level> - "
+           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+           "<yellow>{function}</yellow> - "
+           "<white>{message}</white>",
+    # "<magenta>{extra[user]:^10}</magenta>",
     rotation="1 day",
     retention="7 days",
     catch=True,
     backtrace=True,
     diagnose=True,
-    # filter=filename_filter,
+    # filter=default_filter,
     enqueue=True,
 )
 
 # Тестирование фильтров
 if __name__ == "__main__":
-    logger.error(
-        "Лог без bind (должен попасть в stdout без фильтра)"
-    )  # Только в stdout
-    logger.bind(filename="log.txt").error(
-        "Лог с filename (должен попасть в файл)"
-    )  # Только в файл
-    logger.bind(user="boris").error(
-        "Лог с user (должен попасть в stdout)"
-    )  # Только в stdout
-    logger.bind(filename="log.txt", user="boris").error(
-        "Лог с обоими (должен попасть в stdout и файл)"
-    )  # Везде
-    print(type(settings.ADMIN_IDS))
+    logger.info("Лог без bind (должен попасть в stdout без фильтра и в файл)")
+    logger.bind(user="boris").info("Лог с user (должен попасть в stdout с user-фильтром)")
+    logger.bind(user="boris").info("Лог с user и filename (stdout и файл)")
+    logger.bind(user="").info("Лог с пустым user (должен попасть в файл, но не в stdout с user-фильтром)")
