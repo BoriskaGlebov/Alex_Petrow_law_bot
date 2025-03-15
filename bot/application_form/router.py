@@ -1001,11 +1001,18 @@ async def approve_form_callback(
         print(last_appl.id)
         if approve_form_inf:
             # Если пользователь согласен с данными в форме
+            state_inf = await state.get_data()
+            if not state_inf.get("owner",None):
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="❗️Если у вас есть еще клиенты, то необходимо создать отдельные заявки на каждого.",
+                    reply_markup=ReplyKeyboardRemove(),
+                )
             await state.clear()  # Очищаем состояние FSM
 
             # Отправляем сообщение о том, что заявка принята
             async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-                await asyncio.sleep(2)  # Имитируем набор текста
+                await asyncio.sleep(0.5)  # Имитируем набор текста
                 await bot.send_message(
                     chat_id=call.message.chat.id,
                     text="В ближайшее время с вами свяжется наш специалист для уточнения деталей.",
@@ -1089,7 +1096,7 @@ async def approve_form_callback(
         else:
             # Если пользователь не согласен с данными, удаляем заявку и отправляем сообщение
             await state.clear()
-            await ApplicationDAO.delete(session=session, filters={"id":last_appl.id})
+            await ApplicationDAO.delete(session=session, filters={"id": last_appl.id})
             await bot.send_message(
                 chat_id=call.message.chat.id,
                 text="Необходимо начать сначала создавать заявку",
