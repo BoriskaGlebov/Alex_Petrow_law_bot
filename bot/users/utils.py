@@ -7,8 +7,10 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.utils.chat_action import ChatActionSender
 from bot.config import logger
+from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
-from bot.users.keyboards.markup_kb import main_kb
+from bot.users.keyboards.markup_kb import main_kb, phone_kb
+from bot.users.schemas import TelegramIDModel
 
 
 def get_refer_id_or_none(command_args: str, user_id: int) -> int | None:
@@ -89,7 +91,7 @@ async def mistakes_handler(message: Message, bot: Bot, state: FSMContext,
         await message.answer("Произошла ошибка. Попробуйте снова.")
 
 
-async def age_callback(call: CallbackQuery, state: FSMContext, fsm: StatesGroup, bot: Bot) -> bool:
+async def age_callback(call: CallbackQuery, state: FSMContext, fsm: State, bot: Bot) -> None:
     """
     Обработчик callback-запросов для проверки возраста пользователя.
 
@@ -126,8 +128,7 @@ async def age_callback(call: CallbackQuery, state: FSMContext, fsm: StatesGroup,
                     text="Вы (ваш клиент) являетесь налоговым резидентом Российской Федерации?🇷🇺",
                     reply_markup=approve_keyboard("Да", "Нет"),
                 )
-                await state.set_state(fsm.resident)
-                return True
+                await state.set_state(fsm)
 
                 # Если возраст не подтвержден, очищаем данные и сообщаем пользователю
             else:
@@ -136,7 +137,6 @@ async def age_callback(call: CallbackQuery, state: FSMContext, fsm: StatesGroup,
                     chat_id=call.message.chat.id,
                     text="К сожалению мы не предоставляем услуги лицам младше 🔞 18 лет!",
                 )
-                return False
 
     except Exception as e:
         # Логируем ошибку
@@ -144,7 +144,8 @@ async def age_callback(call: CallbackQuery, state: FSMContext, fsm: StatesGroup,
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
 
 
-async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: State, bot: Bot, answer: str) -> bool:
+async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: list[State], bot: Bot,
+                            answer: str, session) -> None:
     """
     Обработчик callback-запросов для проверки налогового резидентства пользователя.
 
@@ -161,6 +162,7 @@ async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: State, 
         None: Функция не возвращает значения, но отправляет сообщение пользователю.
     """
     try:
+        user_inf = await UserDAO.find_one_or_none(filters=TelegramIDModel(telegram_id=call.from_user.id), session=session)
         # Ответ на запрос и удаление сообщения
         await call.answer(text="Проверяю ввод", show_alert=False)
         approve_inf = call.data.replace("approve_", "")
@@ -170,15 +172,26 @@ async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: State, 
         # Включаем индикатор набора текста
         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
             # Логика для резидента
-            if approve_inf:
+            if approve_inf and user_inf.phone_number is not None:
                 await state.update_data(resident=approve_inf)
                 await bot.send_message(
                     chat_id=call.message.chat.id,
                     text=answer,
                     reply_markup=ReplyKeyboardRemove(),
                 )
-                await state.set_state(fsm)  # Очищаем состояние после завершения анкеты
-                return True
+                await state.set_state(fsm[0])  # Жду новый вопрос
+            elif approve_inf and user_inf.phone_number is None:
+                await state.update_data(resident=approve_inf)
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="Прежде чем мы начнем, необходимо оставить номер "
+                         "телефона для оформления заявки и обратной связи.\n"
+                         "Нажмите кнопку ниже или введите номер телефона вручную:\n"
+                         " - +7XXXXXXXXXX\n"
+                         " - 8XXXXXXXXXX ",
+                    reply_markup=phone_kb(),
+                )
+                await state.set_state(fsm[1])  # Выбираю добавление номера телефона
             else:
                 # Логика для не-резидента
                 await state.clear()

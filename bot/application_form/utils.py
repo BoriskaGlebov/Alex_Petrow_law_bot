@@ -2,11 +2,10 @@ import re
 from typing import Optional
 
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State
 from aiogram.types import Message, ReplyKeyboardRemove
 
-from bot.application_form.router import ApplicationForm
 from bot.users.dao import UserDAO
-from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import phone_kb
 from bot.users.schemas import TelegramIDModel, UpdateNumberSchema
 from bot.users.utils import normalize_phone_number
@@ -36,7 +35,7 @@ def extract_number(text: str) -> Optional[int]:
         return None
 
 
-async def handle_contact(message: Message, state: FSMContext, session) -> None:
+async def handle_contact(message: Message, state: FSMContext, session, fsm: State, answer: str) -> None:
     """
     Обрабатывает получение номера телефона пользователя.
     Поддерживает как кнопку запроса номера, так и ввод вручную.
@@ -74,17 +73,16 @@ async def handle_contact(message: Message, state: FSMContext, session) -> None:
             values=UpdateNumberSchema(phone_number=normalized_phone),
             session=session,
         )
-        await message.answer(
-            f"Спасибо! Ваш номер {normalized_phone} сохранен.",
-            reply_markup=ReplyKeyboardRemove(),
-        )
+        await message.answer(text=answer,
+                             reply_markup=ReplyKeyboardRemove(),
+                             )
 
-        await message.answer(
-            "Вы хотите оставить 📝 заявку на вывод заблокированных средств?",
-            reply_markup=approve_keyboard(
-                "Да", "Нет"
-            ),  # Предлагаем клавиатуру с вариантами
-        )
-        await state.set_state(ApplicationForm.approve_work)
+        # await message.answer(
+        #     "Вы хотите оставить 📝 заявку на вывод заблокированных средств?",
+        #     reply_markup=approve_keyboard(
+        #         "Да", "Нет"
+        #     ),  # Предлагаем клавиатуру с вариантами
+        # )
+        await state.set_state(fsm)
     else:
         await message.answer("Ошибка: ваш аккаунт не найден в базе данных.")

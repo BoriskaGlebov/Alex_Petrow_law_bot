@@ -14,13 +14,14 @@ import bot.application_form.dao
 from bot.admins.keyboards.inline_kb import approve_admin_keyboard
 from bot.application_form.dao import ApplicationDAO
 from bot.application_form.models import Application
+from bot.application_form.utils import handle_contact
 from bot.config import bot, settings
 from bot.database import connection
 from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import main_kb
 from bot.users.schemas import TelegramIDModel
-from bot.users.utils import age_callback, resident_callback
+from bot.users.utils import age_callback, resident_callback, mistakes_handler
 
 other_router = Router()
 
@@ -30,6 +31,7 @@ class OtherHandler(StatesGroup):
     approve_form = State()
     age = State()
     resident = State()
+    phone_number = State()
 
 
 @other_router.message(Command("question"))
@@ -86,11 +88,12 @@ async def age_callback_other(call: CallbackQuery, state: FSMContext) -> None:
     - Обработчик передает callback-запрос и контекст состояния в функцию `age_callback`, которая, вероятно, выполняет
       дальнейшую обработку данных возраста пользователя.
     """
-    await age_callback(call, state, OtherHandler, bot)
+    await age_callback(call, state, OtherHandler.resident, bot)
 
 
 @other_router.callback_query(F.data.startswith("approve_"), OtherHandler.resident)
-async def resident_callback_other(call: CallbackQuery, state: FSMContext) -> None:
+@connection()
+async def resident_callback_other(call: CallbackQuery, state: FSMContext, session) -> None:
     """
     Обработчик callback-запросов, которые начинаются с "approve_" и связаны с полем места жительства в форме.
 
@@ -121,8 +124,17 @@ async def resident_callback_other(call: CallbackQuery, state: FSMContext) -> Non
       дальнейшую обработку данных места жительства пользователя.
     """
 
-    await resident_callback(call, state, OtherHandler.other_question, bot,answer="Введите текст вашего вопроса: 👇")
+    await resident_callback(call, state, [OtherHandler.other_question, OtherHandler.phone_number], bot,
+                            answer="Введите текст вашего вопроса: 👇", session=session)
 
+
+@other_router.message(
+    lambda message: message.contact is not None or message.text is not None, OtherHandler.phone_number
+)
+@connection()
+async def get_contact_phone_number(message: Message, state: FSMContext, session):
+    await handle_contact(message=message, state=state, session=session, fsm=OtherHandler.other_question,
+                         answer="Введите ниже ваш вопрос 👇")
 
 
 @other_router.message(F.text, OtherHandler.other_question)
@@ -320,3 +332,10 @@ async def approve_form_callback(
         # Логируем ошибку и отправляем пользователю сообщение о сбое
         logger.error(f"Ошибка при обработке запроса: {e}")
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
+
+
+@other_router.message(F.text, OtherHandler.age)
+@other_router.message(F.text, OtherHandler.resident)
+async def mistakes_handler_faq(message: Message, state: FSMContext) -> None:
+        await mistakes_handler(message=message, bot=bot, state=state, )
+
