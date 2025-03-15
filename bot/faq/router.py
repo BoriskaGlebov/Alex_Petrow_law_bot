@@ -8,7 +8,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.utils.chat_action import ChatActionSender
 from loguru import logger
 
-from bot.application_form.router import approve_work_callback
+
 from bot.config import bot
 from bot.database import connection
 from bot.faq.dao import QuestionsDAO

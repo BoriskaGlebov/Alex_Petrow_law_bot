@@ -4,6 +4,7 @@ from typing import List, Optional
 
 from aiogram import F
 from aiogram.dispatcher.router import Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -26,6 +27,7 @@ from bot.application_form.schemas import (
     PhotoModelSchema,
     VideoModelSchema,
 )
+from bot.application_form.utils import handle_contact
 from bot.config import bot, settings
 from bot.database import connection
 from bot.other_handler.router import OtherHandler
@@ -33,13 +35,13 @@ from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import main_kb, phone_kb
 from bot.users.schemas import TelegramIDModel, UpdateNumberSchema
-from bot.users.utils import normalize_phone_number
+from bot.users.utils import normalize_phone_number, mistakes_handler, age_callback, resident_callback
 
 application_form_router = Router()
 
 
 class ApplicationForm(StatesGroup):
-    approve_work = State()
+    continue_val = State()
     owner = State()
     photo = State()
     question_asked = State()  # Проверка на то нужно ли задавать вопрос по досылке фото
@@ -52,30 +54,21 @@ class ApplicationForm(StatesGroup):
     video = State()
     approve_form = State()
     phone_number = State()
+    age = State()
+    resident = State()
 
 
-# @application_form_router.message(Command('application_form'))
+@application_form_router.message(Command('unblock'))
 @application_form_router.message(F.text.contains("Вывод заблокированных средств"))
 @connection()
 async def application_form_start(
         message: Message, state: FSMContext, session, **kwargs
 ) -> None:
     """
-    Обработчик команды, запускающий процесс подачи заявки на вывод заблокированных средств.
-    Отправляет пользователю сообщение с предложением оставить заявку и ожидает ответа.
 
-    Args:
-        message (Message): Сообщение от пользователя, которое содержит текст "Вывод заблокированных средств".
-        state (FSMContext): Контекст состояния машины состояний, используется для сохранения и изменения состояния пользователя.
-        **kwargs: Дополнительные аргументы, которые могут быть переданы через декоратор.
-
-    Returns:
-        None: Функция не возвращает значения, но отправляет сообщения пользователю.
-
-    Raises:
-        Exception: Если при выполнении команды возникает ошибка, она будет зафиксирована в логе и отправлено сообщение о проблемах.
     """
     try:
+        await state.clear()
         # Имитируем набор текста, пока выполняется вся логика
         async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
             # Ищем пользователя в базе данных по ID
@@ -83,28 +76,12 @@ async def application_form_start(
                 session=session,
                 filters=TelegramIDModel(telegram_id=message.from_user.id),
             )
+            await message.answer(
+                "Вам и/или вашему клиенту  уже исполнилось 🔞 18 лет? ",
+                reply_markup=approve_keyboard("Да", "Нет"),  # Предлагаем клавиатуру с вариантами
+            )
+            await state.set_state(ApplicationForm.age)
 
-            if user_inf and user_inf.phone_number:
-                # Если номер телефона уже сохранен, отправляем предложение о заявке
-                await message.answer(
-                    "Вы хотите оставить 📝 заявку на вывод заблокированных средств?",
-                    reply_markup=approve_keyboard(
-                        "Да", "Нет"
-                    ),  # Предлагаем клавиатуру с вариантами
-                )
-                # Устанавливаем состояние для машины состояний
-                await state.set_state(ApplicationForm.approve_work)
-            else:
-                # Если номера телефона нет, просим пользователя его ввести
-                await message.answer(
-                    "Прежде чем мы начнем, необходимо оставить номер "
-                    "телефона для оформления заявки и обратной связи.\n"
-                    "Нажмите кнопку ниже или введите номер телефона вручную:\n"
-                    " - +7XXXXXXXXXX\n"
-                    " - 8XXXXXXXXXX ",
-                    reply_markup=phone_kb(),  # Предлагаем клавиатуру с вариантами
-                )
-                await state.set_state(ApplicationForm.phone_number)
     except Exception as e:
         # Логируем ошибку, если она возникла
         logger.error(
@@ -116,80 +93,241 @@ async def application_form_start(
         )
 
 
-@application_form_router.callback_query(
-    F.data.startswith("approve_"), ApplicationForm.approve_work
-)
-async def approve_work_callback(call: CallbackQuery, state: FSMContext) -> None:
+@application_form_router.callback_query(F.data.startswith("approve_"), ApplicationForm.age)
+async def age_callback_application(call: CallbackQuery, state: FSMContext) -> None:
     """
-    Обработчик callback-запроса для подтверждения начала работы над заявкой на вывод заблокированных средств.
-    После подтверждения пользователем, отправляется ряд сообщений с инструкциями и запросом на информацию о выводе средств.
 
-    Args:
-        call (CallbackQuery): Объект callback-запроса, содержащий данные о взаимодействии пользователя с кнопкой.
-        state (FSMContext): Контекст состояния машины состояний, используется для сохранения данных пользователя в процессе взаимодействия.
-
-    Returns:
-        None: Функция не возвращает значения, но отправляет несколько сообщений в чат с пользователем, а также изменяет состояние.
-
-    Raises:
-        Exception: В случае возникновения ошибки при обработке запроса, ошибка логируется и пользователю отправляется сообщение об ошибке.
     """
-    try:
-        # Ответ на callback запрос
-        await call.answer(text="Проверяю ввод", show_alert=False)
-        await call.message.delete()
-        # Обработка данных из callback_data
-        approve_inf = call.data.replace("approve_", "")
-        approve_inf = True if approve_inf == "True" else False
-        async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
-            if approve_inf:
-                # Обновление данных в состоянии
-                await state.update_data(approve_work=approve_inf)
-                # Отправка серии сообщений с информацией
+    await age_callback(call, state, ApplicationForm.resident, bot)
+
+
+@application_form_router.callback_query(F.data.startswith("approve_"), ApplicationForm.resident)
+@connection()
+async def resident_callback_application(call: CallbackQuery, state: FSMContext, session) -> None:
+    """
+
+    """
+
+    res = await resident_callback(call, state, [ApplicationForm.continue_val, ApplicationForm.phone_number], bot,
+                                  answer="Продолжайте следовать инструкции", session=session)
+    st=await state.get_state()
+    print(st)
+    if st == "ApplicationForm:continue_val":
+        # Имитируем набор текста, пока выполняется вся логика
+        async with ChatActionSender.typing(bot=bot, chat_id=call.from_user.id):
+            # Ищем пользователя в базе данных по ID
+            user_inf = await UserDAO.find_one_or_none(
+                session=session,
+                filters=TelegramIDModel(telegram_id=call.from_user.id),
+            )
+
+            # # Если номер телефона уже сохранен, отправляем предложение о заявке
+            # await message.answer(
+            #     "Вы выбрали оставить 📝 заявку на вывод заблокированных средств?",
+            #     reply_markup=ReplyKeyboardRemove(),  # Предлагаем клавиатуру с вариантами
+            # )
+            # Устанавливаем состояние для машины состояний
+            # await state.update_data(approve_work=approve_inf)
+            # Отправка серии сообщений с информацией
+            await asyncio.sleep(1)
+            await bot.send_message(
+                chat_id=call.from_user.id,
+                text="Мы заполняем заявку на списание заблокированных средств одного должника.",
+                reply_markup=ReplyKeyboardRemove(),
+            )
+            await asyncio.sleep(1)
+            await bot.send_message(
+                chat_id=call.from_user.id,
+                text="❗️❗️❗️ Если у вас несколько должников, на каждого из них заполняется отдельная анкета.",
+            )
+            await asyncio.sleep(1)
+            await bot.send_message(
+                chat_id=call.from_user.id,
+                text="Не имеет значения, в каком количестве 🏦 банков и счетов заблокированы средства.",
+            )
+            await asyncio.sleep(1)
+            await bot.send_message(
+                chat_id=call.from_user.id,
+                text="В анкете необходимо будет указать, какие суммы в каких банках заблокированы.",
+            )
+
+            if user_inf and user_inf.phone_number:
+                # Устанавливаем следующее состояние для обработки данных
+                await state.set_state(ApplicationForm.owner)
                 await asyncio.sleep(1)
                 await bot.send_message(
-                    chat_id=call.message.chat.id,
-                    text="Мы заполняем заявку на списание заблокированных средств одного должника.",
-                    reply_markup=ReplyKeyboardRemove(),
-                )
-                await asyncio.sleep(1)
-                await bot.send_message(
-                    chat_id=call.message.chat.id,
-                    text="❗️❗️❗️ Если у вас несколько должников, на каждого из них заполняется отдельная анкета.",
-                )
-                await asyncio.sleep(1)
-                await bot.send_message(
-                    chat_id=call.message.chat.id,
-                    text="Не имеет значения, в каком количестве 🏦 банков и счетов заблокированы средства.",
-                )
-                await asyncio.sleep(1)
-                await bot.send_message(
-                    chat_id=call.message.chat.id,
-                    text="В анкете необходимо будет указать, какие суммы в каких банках заблокированы.",
-                )
-                await asyncio.sleep(1)
-                await bot.send_message(
-                    chat_id=call.message.chat.id,
+                    chat_id=call.from_user.id,
                     text="Вы хотите вывести средства с собственного счета или счета вашего клиента?",
                     reply_markup=owner_keyboard(),
                 )
-                # Устанавливаем следующее состояние для обработки данных
-                await state.set_state(ApplicationForm.owner)
             else:
-                # Если пользователь не подтвердил, предлагаем текстовую заявку
-                await state.set_state(OtherHandler.other_question)
-                await bot.send_message(
-                    chat_id=call.message.chat.id,
-                    text="Чем бы мы могли вам в таком случае помочь?",
-                )
-                # TODO Тут можно зарегистрировать заявку на другую услугу, если необходимо
-                # TODO Не забыть добавить работу с БД
+                # # Если номера телефона нет, просим пользователя его ввести
+                # await state.set_state(ApplicationForm.phone_number)
+                # await message.answer(
+                #     "Прежде чем мы начнем, необходимо оставить номер "
+                #     "телефона для оформления заявки и обратной связи.\n"
+                #     "Нажмите кнопку ниже или введите номер телефона вручную:\n"
+                #     " - +7XXXXXXXXXX\n"
+                #     " - 8XXXXXXXXXX ",
+                #     reply_markup=phone_kb(),  # Предлагаем клавиатуру с вариантами
+                # )
+                return
 
-    except Exception as e:
-        # Логируем ошибку
-        logger.error(f"Ошибка при обработке запроса: {e}")
-        # Отправляем пользователю сообщение об ошибке
-        await call.message.answer("Произошла ошибка. Попробуйте снова.")
+
+# @application_form_router.message(F.text, ApplicationForm.continue_val)
+# @connection()
+# async def application_form_start_continue(
+#         message: Message, state: FSMContext, session, **kwargs
+# ) -> None:
+#     """
+#
+#     """
+#     try:
+#         await state.clear()
+#         # Имитируем набор текста, пока выполняется вся логика
+#         async with ChatActionSender.typing(bot=bot, chat_id=message.chat.id):
+#             # Ищем пользователя в базе данных по ID
+#             user_inf = await UserDAO.find_one_or_none(
+#                 session=session,
+#                 filters=TelegramIDModel(telegram_id=message.from_user.id),
+#             )
+#
+#             # Если номер телефона уже сохранен, отправляем предложение о заявке
+#             await message.answer(
+#                 "Вы выбрали оставить 📝 заявку на вывод заблокированных средств?",
+#                 reply_markup=ReplyKeyboardRemove(),  # Предлагаем клавиатуру с вариантами
+#             )
+#             # Устанавливаем состояние для машины состояний
+#             # await state.update_data(approve_work=approve_inf)
+#             # Отправка серии сообщений с информацией
+#             await asyncio.sleep(1)
+#             await bot.send_message(
+#                 chat_id=message.from_user.id,
+#                 text="Мы заполняем заявку на списание заблокированных средств одного должника.",
+#                 reply_markup=ReplyKeyboardRemove(),
+#             )
+#             await asyncio.sleep(1)
+#             await bot.send_message(
+#                 chat_id=message.from_user.id,
+#                 text="❗️❗️❗️ Если у вас несколько должников, на каждого из них заполняется отдельная анкета.",
+#             )
+#             await asyncio.sleep(1)
+#             await bot.send_message(
+#                 chat_id=message.from_user.id,
+#                 text="Не имеет значения, в каком количестве 🏦 банков и счетов заблокированы средства.",
+#             )
+#             await asyncio.sleep(1)
+#             await bot.send_message(
+#                 chat_id=message.from_user.id,
+#                 text="В анкете необходимо будет указать, какие суммы в каких банках заблокированы.",
+#             )
+#
+#             if user_inf and user_inf.phone_number:
+#                 # Устанавливаем следующее состояние для обработки данных
+#                 await state.set_state(ApplicationForm.owner)
+#                 await asyncio.sleep(1)
+#                 await bot.send_message(
+#                     chat_id=message.from_user.id,
+#                     text="Вы хотите вывести средства с собственного счета или счета вашего клиента?",
+#                     reply_markup=owner_keyboard(),
+#                 )
+#             else:
+#                 # Если номера телефона нет, просим пользователя его ввести
+#                 await state.set_state(ApplicationForm.phone_number)
+#                 await message.answer(
+#                     "Прежде чем мы начнем, необходимо оставить номер "
+#                     "телефона для оформления заявки и обратной связи.\n"
+#                     "Нажмите кнопку ниже или введите номер телефона вручную:\n"
+#                     " - +7XXXXXXXXXX\n"
+#                     " - 8XXXXXXXXXX ",
+#                     reply_markup=phone_kb(),  # Предлагаем клавиатуру с вариантами
+#                 )
+#
+#     except Exception as e:
+#         # Логируем ошибку, если она возникла
+#         logger.error(
+#             f"Ошибка при выполнении команды /application для пользователя {message.from_user.id}: {e}"
+#         )
+#         # Отправка сообщения об ошибке
+#         await message.answer(
+#             "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже."
+#         )
+
+
+# @application_form_router.callback_query(
+#     F.data.startswith("approve_"), ApplicationForm.approve_work
+# )
+# async def approve_work_callback(call: CallbackQuery, state: FSMContext) -> None:
+#     """
+#     Обработчик callback-запроса для подтверждения начала работы над заявкой на вывод заблокированных средств.
+#     После подтверждения пользователем, отправляется ряд сообщений с инструкциями и запросом на информацию о выводе средств.
+#
+#     Args:
+#         call (CallbackQuery): Объект callback-запроса, содержащий данные о взаимодействии пользователя с кнопкой.
+#         state (FSMContext): Контекст состояния машины состояний, используется для сохранения данных пользователя в процессе взаимодействия.
+#
+#     Returns:
+#         None: Функция не возвращает значения, но отправляет несколько сообщений в чат с пользователем, а также изменяет состояние.
+#
+#     Raises:
+#         Exception: В случае возникновения ошибки при обработке запроса, ошибка логируется и пользователю отправляется сообщение об ошибке.
+#     """
+#     try:
+#         # Ответ на callback запрос
+#         await call.answer(text="Проверяю ввод", show_alert=False)
+#         await call.message.delete()
+#         # Обработка данных из callback_data
+#         approve_inf = call.data.replace("approve_", "")
+#         approve_inf = True if approve_inf == "True" else False
+#         async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
+#             if approve_inf:
+#                 # Обновление данных в состоянии
+#                 await state.update_data(approve_work=approve_inf)
+#                 # Отправка серии сообщений с информацией
+#                 await asyncio.sleep(1)
+#                 await bot.send_message(
+#                     chat_id=call.message.chat.id,
+#                     text="Мы заполняем заявку на списание заблокированных средств одного должника.",
+#                     reply_markup=ReplyKeyboardRemove(),
+#                 )
+#                 await asyncio.sleep(1)
+#                 await bot.send_message(
+#                     chat_id=call.message.chat.id,
+#                     text="❗️❗️❗️ Если у вас несколько должников, на каждого из них заполняется отдельная анкета.",
+#                 )
+#                 await asyncio.sleep(1)
+#                 await bot.send_message(
+#                     chat_id=call.message.chat.id,
+#                     text="Не имеет значения, в каком количестве 🏦 банков и счетов заблокированы средства.",
+#                 )
+#                 await asyncio.sleep(1)
+#                 await bot.send_message(
+#                     chat_id=call.message.chat.id,
+#                     text="В анкете необходимо будет указать, какие суммы в каких банках заблокированы.",
+#                 )
+#                 await asyncio.sleep(1)
+#                 await bot.send_message(
+#                     chat_id=call.message.chat.id,
+#                     text="Вы хотите вывести средства с собственного счета или счета вашего клиента?",
+#                     reply_markup=owner_keyboard(),
+#                 )
+#                 # Устанавливаем следующее состояние для обработки данных
+#                 await state.set_state(ApplicationForm.owner)
+#             else:
+#                 # Если пользователь не подтвердил, предлагаем текстовую заявку
+#                 await state.set_state(OtherHandler.other_question)
+#                 await bot.send_message(
+#                     chat_id=call.message.chat.id,
+#                     text="Чем бы мы могли вам в таком случае помочь?",
+#                 )
+#                 # TODO Тут можно зарегистрировать заявку на другую услугу, если необходимо
+#                 # TODO Не забыть добавить работу с БД
+#
+#     except Exception as e:
+#         # Логируем ошибку
+#         logger.error(f"Ошибка при обработке запроса: {e}")
+#         # Отправляем пользователю сообщение об ошибке
+#         await call.message.answer("Произошла ошибка. Попробуйте снова.")
 
 
 @application_form_router.callback_query(
@@ -994,17 +1132,14 @@ async def approve_form_callback(
         user_applications = await UserDAO.find_one_or_none(
             session=session, filters=user_id
         )
-        for el in user_applications.applications:
-            print(el)
         if not user_applications or not user_applications.applications:
             raise ValueError("Нет доступных заявок для пользователя.")
 
         last_appl: Application = user_applications.applications[-1]
-        print(last_appl.id)
         if approve_form_inf:
             # Если пользователь согласен с данными в форме
             state_inf = await state.get_data()
-            if not state_inf.get("owner",None):
+            if not state_inf.get("owner", None):
                 await bot.send_message(
                     chat_id=call.message.chat.id,
                     text="❗️Если у вас есть еще клиенты, то необходимо создать отдельные заявки на каждого.",
@@ -1112,10 +1247,10 @@ async def approve_form_callback(
 
 
 @application_form_router.message(
-    lambda message: message.contact is not None or message.text is not None, ApplicationForm.can_contact
+    lambda message: message.contact is not None or message.text is not None, ApplicationForm.phone_number
 )
 @connection()
-async def handle_contact(message: Message, state: FSMContext, session) -> None:
+async def handle_contact_application(message: Message, state: FSMContext, session) -> None:
     """
     Обрабатывает получение номера телефона пользователя.
     Поддерживает как кнопку запроса номера, так и ввод вручную.
@@ -1123,63 +1258,30 @@ async def handle_contact(message: Message, state: FSMContext, session) -> None:
     Требует корректный номер в формате +7XXXXXXXXXX или 8XXXXXXXXXX.
     """
 
-    user_id = message.from_user.id
-    if message.contact:  # Если номер пришел через кнопку
-        phone_number = message.contact.phone_number
-    else:  # Если пользователь ввел номер вручную
-        phone_number = message.text.strip()
-        # Проверяем корректность номера
-        phone_pattern = re.compile(
-            r"^(\+7|8)?\d{10}$"
-        )  # Разрешает +7XXXXXXXXXX или 8XXXXXXXXXX
-        if not phone_pattern.match(phone_number):
-            await message.answer(
-                "Ошибка: введите корректный номер телефона в формате +7XXXXXXXXXX или 8XXXXXXXXXX.",
-                reply_markup=phone_kb(),
-            )
-            return
-
-    # Нормализуем номер (добавляем +7, если надо)
-    normalized_phone = normalize_phone_number(phone_number)
-
-    # Проверяем, есть ли пользователь в БД
-    existing_user = await UserDAO.find_one_or_none(
-        session=session, filters=TelegramIDModel(telegram_id=user_id)
-    )
-
-    if existing_user and (existing_user.phone_number is None):
-        await UserDAO.update(
-            filters=TelegramIDModel(telegram_id=user_id),
-            values=UpdateNumberSchema(phone_number=normalized_phone),
-            session=session,
-        )
-        await message.answer(
-            f"Спасибо! Ваш номер {normalized_phone} сохранен.",
-            reply_markup=ReplyKeyboardRemove(),
+    res = await handle_contact(message=message, state=state, session=session, fsm=ApplicationForm.owner,
+                               answer="Продолжайте следовать инструкции.")
+    if res != False:
+        await asyncio.sleep(0.5)
+        await bot.send_message(
+            chat_id=message.from_user.id,
+            text="Вы хотите вывести средства с собственного счета или счета вашего клиента?",
+            reply_markup=owner_keyboard(),
         )
 
-        await message.answer(
-            "Вы хотите оставить 📝 заявку на вывод заблокированных средств?",
-            reply_markup=approve_keyboard(
-                "Да", "Нет"
-            ),  # Предлагаем клавиатуру с вариантами
-        )
-        await state.set_state(ApplicationForm.approve_work)
-    else:
-        await message.answer("Ошибка: ваш аккаунт не найден в базе данных.")
 
-
-@application_form_router.message(F.text, ApplicationForm.approve_work)
+@application_form_router.message(F.text, ApplicationForm.continue_val)
 @application_form_router.message(F.text, ApplicationForm.owner)
 @application_form_router.message(F.text, ApplicationForm.photo)
 @application_form_router.message(F.text, ApplicationForm.video)
 @application_form_router.message(F.text, ApplicationForm.approve_form)
-async def mistakes_handler(message: Message, state: FSMContext) -> None:
-    """ """
-    try:
-        await message.answer("Необходимо нажать по кнопке 👆")
-
-    except Exception as e:
-        # Логируем ошибку
-        logger.error(f"Ошибка при обработке запроса: {e}")
-        await message.answer("Произошла ошибка. Попробуйте снова.")
+@application_form_router.message(F.text, ApplicationForm.can_contact)
+@application_form_router.message(F.text, ApplicationForm.age)
+@application_form_router.message(F.text, ApplicationForm.resident)
+@application_form_router.message(F.text, ApplicationForm.question_asked)
+@application_form_router.message(F.text, ApplicationForm.check_state)
+async def mistakes_handler_faq(message: Message, state: FSMContext) -> None:
+    st = await state.get_state()
+    if st == "ApplicationForm:photo":
+        await mistakes_handler(message=message, bot=bot, state=state, answer="Нужно отправить фото")
+    else:
+        await mistakes_handler(message=message, bot=bot, state=state)

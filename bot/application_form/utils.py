@@ -57,7 +57,7 @@ async def handle_contact(message: Message, state: FSMContext, session, fsm: Stat
                 "Ошибка: введите корректный номер телефона в формате +7XXXXXXXXXX или 8XXXXXXXXXX.",
                 reply_markup=phone_kb(),
             )
-            return
+            return False
 
     # Нормализуем номер (добавляем +7, если надо)
     normalized_phone = normalize_phone_number(phone_number)

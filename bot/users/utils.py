@@ -145,7 +145,7 @@ async def age_callback(call: CallbackQuery, state: FSMContext, fsm: State, bot: 
 
 
 async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: list[State], bot: Bot,
-                            answer: str, session) -> None:
+                            answer: str, session) -> bool|str:
     """
     Обработчик callback-запросов для проверки налогового резидентства пользователя.
 
@@ -201,6 +201,7 @@ async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: list[St
                     reply_markup=ReplyKeyboardRemove()
                 )
                 return False
+            return await state.get_state()
     except Exception as e:
         # Логируем ошибку
         logger.error(f"Ошибка при обработке запроса: {e}")
