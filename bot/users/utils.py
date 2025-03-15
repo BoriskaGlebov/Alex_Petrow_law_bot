@@ -3,9 +3,12 @@ import re
 
 from aiogram import Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardRemove
 from aiogram.utils.chat_action import ChatActionSender
 from bot.config import logger
+from bot.users.keyboards.inline_kb import approve_keyboard
+from bot.users.keyboards.markup_kb import main_kb
 
 
 def get_refer_id_or_none(command_args: str, user_id: int) -> int | None:
@@ -84,3 +87,108 @@ async def mistakes_handler(message: Message, bot: Bot, state: FSMContext,
         # Логируем ошибку
         logger.error(f"Ошибка при обработке запроса: {e}")
         await message.answer("Произошла ошибка. Попробуйте снова.")
+
+
+async def age_callback(call: CallbackQuery, state: FSMContext, fsm: StatesGroup, bot: Bot) -> bool:
+    """
+    Обработчик callback-запросов для проверки возраста пользователя.
+
+    Этот обработчик вызывается, когда пользователь отвечает на вопрос о возрасте в анкете.
+    Если пользователь подтвердил, что ему исполнилось 18 лет, он переходит к следующему вопросу.
+    В противном случае, анкета обнуляется, и пользователю отправляется сообщение о том, что
+    он не может воспользоваться услугами.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса, который содержит данные о взаимодействии пользователя с клавиатурой.
+        state (FSMContext): Контекст машины состояний, в котором хранятся данные анкеты.
+        fsm (StatesGroup): На какое состояние надо поменять
+        bot (Bot): бот
+    Returns:
+        None: Функция не возвращает значения, но отправляет сообщение пользователю.
+    """
+    try:
+        await call.answer(text="Проверяю ввод", show_alert=False)
+
+        # Обработка данных из callback
+        approve_inf = call.data.replace("approve_", "")
+        approve_inf = True if approve_inf == "True" else False
+
+        # Удаляем сообщение и клавиатуру с вопросом
+        await call.message.delete()
+
+        # Включаем индикатор набора текста
+        async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
+            # Если возраст подтвержден, переходим к следующему вопросу
+            if approve_inf:
+                await state.update_data(age=approve_inf)
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="Вы (ваш клиент) являетесь налоговым резидентом Российской Федерации?🇷🇺",
+                    reply_markup=approve_keyboard("Да", "Нет"),
+                )
+                await state.set_state(fsm.resident)
+                return True
+
+                # Если возраст не подтвержден, очищаем данные и сообщаем пользователю
+            else:
+                await state.clear()
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="К сожалению мы не предоставляем услуги лицам младше 🔞 18 лет!",
+                )
+                return False
+
+    except Exception as e:
+        # Логируем ошибку
+        logger.error(f"Ошибка при обработке запроса: {e}")
+        await call.message.answer("Произошла ошибка. Попробуйте снова.")
+
+
+async def resident_callback(call: CallbackQuery, state: FSMContext, fsm: State, bot: Bot, answer: str) -> bool:
+    """
+    Обработчик callback-запросов для проверки налогового резидентства пользователя.
+
+    Этот обработчик вызывается, когда пользователь отвечает на вопрос о налоговом резидентстве в анкете.
+    Если пользователь является налоговым резидентом России, ему показывается основное меню,
+    иначе анкета обнуляется, и пользователю отправляется сообщение о том, что бот не работает с налоговыми резидентами других стран.
+
+    Args:
+        call (CallbackQuery): Объект callback-запроса, который содержит данные о взаимодействии пользователя с клавиатурой.
+        state (FSMContext): Контекст машины состояний, в котором хранятся данные анкеты.
+        fsm (State): На какое состояние надо поменять
+        bot (Bot): бот
+    Returns:
+        None: Функция не возвращает значения, но отправляет сообщение пользователю.
+    """
+    try:
+        # Ответ на запрос и удаление сообщения
+        await call.answer(text="Проверяю ввод", show_alert=False)
+        approve_inf = call.data.replace("approve_", "")
+        approve_inf = True if approve_inf == "True" else False
+        await call.message.delete()
+
+        # Включаем индикатор набора текста
+        async with ChatActionSender.typing(bot=bot, chat_id=call.message.chat.id):
+            # Логика для резидента
+            if approve_inf:
+                await state.update_data(resident=approve_inf)
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text=answer,
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                await state.set_state(fsm)  # Очищаем состояние после завершения анкеты
+                return True
+            else:
+                # Логика для не-резидента
+                await state.clear()
+                await bot.send_message(
+                    chat_id=call.message.chat.id,
+                    text="К сожалению, мы 🧑‍🎓 не работаем с налоговыми резидентами других стран.",
+                    reply_markup=ReplyKeyboardRemove()
+                )
+                return False
+    except Exception as e:
+        # Логируем ошибку
+        logger.error(f"Ошибка при обработке запроса: {e}")
+        await call.message.answer("Произошла ошибка. Попробуйте снова.")

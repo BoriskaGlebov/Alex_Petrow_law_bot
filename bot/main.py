@@ -65,11 +65,12 @@ async def main():
     запускает бота с использованием long polling для получения обновлений.
     """
     # регистрация роутеров
-    dp.include_router(help_router)
-    dp.include_router(faq_router)
     dp.include_router(user_router)
+    dp.include_router(help_router)
     dp.include_router(other_router)
     dp.include_router(application_form_router)
+    dp.include_router(faq_router)
+
     dp.include_router(admin_router)
     dp.include_router(echo_router)
 
