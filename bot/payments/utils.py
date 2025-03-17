@@ -90,7 +90,7 @@ async def mistakes_handler(
 
     except Exception as e:
         # Логируем ошибку
-        logger.error(f"Ошибка при обработке запроса {mistakes_handler.__name__}: {e}")
+        logger.error(f"Ошибка при обработке запроса: {e}")
         await message.answer("Произошла ошибка. Попробуйте снова.")
 
 
@@ -145,10 +145,7 @@ async def age_callback(
 
     except Exception as e:
         # Логируем ошибку
-        logger.error(
-            f"Ошибка при обработке запроса {age_callback.__name__} "
-            f"(Обработчик callback-запросов для проверки возраста пользователя.): {e}"
-        )
+        logger.error(f"Ошибка при обработке запроса: {e}")
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
 
 
@@ -159,7 +156,7 @@ async def resident_callback(
     bot: Bot,
     answer: str,
     session,
-) -> None:
+) -> bool | str:
     """
     Обработчик callback-запросов для проверки налогового резидентства пользователя.
 
@@ -172,8 +169,6 @@ async def resident_callback(
         state (FSMContext): Контекст машины состояний, в котором хранятся данные анкеты.
         fsm (State): На какое состояние надо поменять
         bot (Bot): бот
-        answer (str): Собственный ответ вопрос для отправки
-        session : асинхронная сессия для БД
     Returns:
         None: Функция не возвращает значения, но отправляет сообщение пользователю.
     """
@@ -222,8 +217,5 @@ async def resident_callback(
             return await state.get_state()
     except Exception as e:
         # Логируем ошибку
-        logger.error(
-            f"Ошибка при обработке запроса {resident_callback.__name__} "
-            f"(Обработчик callback-запросов для проверки налогового резидентства пользователя.): {e}"
-        )
+        logger.error(f"Ошибка при обработке запроса: {e}")
         await call.message.answer("Произошла ошибка. Попробуйте снова.")

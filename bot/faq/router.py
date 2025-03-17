@@ -143,7 +143,9 @@ async def faq_callback(call: CallbackQuery) -> None:
         logger.warning(f"Ошибка при попытке редактировать сообщение: {e}")
     except Exception as e:
         # Логируем ошибку
-        logger.error(f"Ошибка при обработке запроса: {e}")
+        logger.error(
+            f"Ошибка при обработке запроса по получению callback для листания вопросов: {e}"
+        )
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
 
 
@@ -191,9 +193,28 @@ async def faq_main_menu(call: CallbackQuery, state: FSMContext) -> None:
 @faq_router.message(F.text, Answering.control_mistake)
 @faq_router.message(F.text, Answering.check)
 async def mistakes_handler_faq(message: Message, state: FSMContext) -> None:
-    st = await state.get_state()
-    if st == "Answering:check":
-        await mistakes_handler(message=message, bot=bot, state=state, )
-    elif st == "Answering:control_mistake":
-        await mistakes_handler(message=message, bot=bot, state=state,
-                               answer="Пожалуйста, выберите один из вариантов, нажав на кнопку 👇")
+    try:
+        st = await state.get_state()
+        if st == "Answering:check":
+            await mistakes_handler(
+                message=message,
+                bot=bot,
+                state=state,
+            )
+        elif st == "Answering:control_mistake":
+            await mistakes_handler(
+                message=message,
+                bot=bot,
+                state=state,
+                answer="Пожалуйста, выберите один из вариантов, нажав на кнопку 👇",
+            )
+    except Exception as e:
+        # Логируем ошибку
+        logger.error(
+            f"Ошибка! Ветка ошибочного ввода в сценарии с FAQ и она выдала ошибку: {e}"
+        )
+
+        # Информируем пользователя об ошибке
+        await message.answer(
+            "Произошла ошибка при возвращении в главное меню. Попробуйте снова."
+        )

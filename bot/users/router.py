@@ -63,7 +63,7 @@ async def admin_start(message: Message, state: FSMContext, **kwargs: Any) -> Non
 @user_router.message(CommandStart())
 @connection()
 async def cmd_start(
-        message: Message, command: CommandObject, session, state: FSMContext, **kwargs
+    message: Message, command: CommandObject, session, state: FSMContext, **kwargs
 ) -> None:
     """
     Обработчик команды /start для Telegram-бота. Проверяет, существует ли пользователь в базе данных,
@@ -162,9 +162,6 @@ async def cmd_start(
         await message.answer(
             "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже."
         )
-
-
-
 
 
 @user_router.message(F.text, CheckForm.age)

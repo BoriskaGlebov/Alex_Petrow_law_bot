@@ -38,13 +38,16 @@ class OtherHandler(StatesGroup):
 @other_router.message(F.text.contains("Свой вопрос?"))
 async def other_start(message: Message, state: FSMContext, **kwargs: Any) -> None:
     """
-        НАчало ообработки обработчика отвечающий за нестандартн ворпос от пользователя
+    НАчало ообработки обработчика отвечающий за нестандартн ворпос от пользователя
     """
     try:
         # Очищаем состояние пользователя
         await state.clear()
         msg4 = "Вам и/или вашему клиенту  уже исполнилось 🔞 18 лет? "
-        await message.answer(text="Отлично! Вы хотите задать свой вопрос.", reply_markup=ReplyKeyboardRemove())
+        await message.answer(
+            text="Отлично! Вы хотите задать свой вопрос.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
         await asyncio.sleep(0.5)
         await message.answer(text=msg4, reply_markup=approve_keyboard("Да", "Нет"))
         await state.set_state(OtherHandler.age)
@@ -71,7 +74,7 @@ async def age_callback_other(call: CallbackQuery, state: FSMContext) -> None:
     call : CallbackQuery
         Объект callback-запроса от пользователя. Содержит информацию о запросе, включая
         данные, отправленные пользователем, и информацию о контексте кнопки.
-    
+
     state : FSMContext
         Контекст состояния машины состояний (FSM) для отслеживания данных состояния пользователя.
         Используется для хранения промежуточных данных в процессе ввода формы.
@@ -93,7 +96,9 @@ async def age_callback_other(call: CallbackQuery, state: FSMContext) -> None:
 
 @other_router.callback_query(F.data.startswith("approve_"), OtherHandler.resident)
 @connection()
-async def resident_callback_other(call: CallbackQuery, state: FSMContext, session) -> None:
+async def resident_callback_other(
+    call: CallbackQuery, state: FSMContext, session
+) -> None:
     """
     Обработчик callback-запросов, которые начинаются с "approve_" и связаны с полем места жительства в форме.
 
@@ -124,23 +129,35 @@ async def resident_callback_other(call: CallbackQuery, state: FSMContext, sessio
       дальнейшую обработку данных места жительства пользователя.
     """
 
-    await resident_callback(call, state, [OtherHandler.other_question, OtherHandler.phone_number], bot,
-                            answer="Введите текст вашего вопроса: 👇", session=session)
+    await resident_callback(
+        call,
+        state,
+        [OtherHandler.other_question, OtherHandler.phone_number],
+        bot,
+        answer="Введите текст вашего вопроса: 👇",
+        session=session,
+    )
 
 
 @other_router.message(
-    lambda message: message.contact is not None or message.text is not None, OtherHandler.phone_number
+    lambda message: message.contact is not None or message.text is not None,
+    OtherHandler.phone_number,
 )
 @connection()
 async def get_contact_phone_number(message: Message, state: FSMContext, session):
-    await handle_contact(message=message, state=state, session=session, fsm=OtherHandler.other_question,
-                         answer="Введите ниже ваш вопрос 👇")
+    await handle_contact(
+        message=message,
+        state=state,
+        session=session,
+        fsm=OtherHandler.other_question,
+        answer="Введите ниже ваш вопрос 👇",
+    )
 
 
 @other_router.message(F.text, OtherHandler.other_question)
 @connection()
 async def other_question_message(
-        message: Message, session, state: FSMContext, **kwargs
+    message: Message, session, state: FSMContext, **kwargs
 ) -> None:
     """
     Обработчик для получения текстового сообщения от пользователя, оформления заявки и отправки подтверждения.
@@ -206,7 +223,8 @@ async def other_question_message(
     except Exception as e:
         # Логируем ошибку
         logger.error(
-            f"Ошибка при обработке заявки для пользователя {message.from_user.id}: {e}"
+            f"Ошибка при обработке заявки для пользователя {message.from_user.id} ("
+            f"Создание заявки по своему вопросу другому): {e}"
         )
         await message.answer(
             "Произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте снова позже."
@@ -217,7 +235,7 @@ async def other_question_message(
 @other_router.callback_query(F.data.startswith("approve_"), OtherHandler.approve_form)
 @connection()
 async def approve_form_callback(
-        call: CallbackQuery, state: FSMContext, session
+    call: CallbackQuery, state: FSMContext, session
 ) -> None:
     """
     Обрабатывает callback-запрос пользователя, одобряющего форму заявки.
@@ -280,7 +298,7 @@ async def approve_form_callback(
                     )
             except Exception as e:
                 logger.error(
-                    f"Не удалось отправить сообщение админу {admin_id} об созадании заявки ботом администратору: {e}"
+                    f"Не удалось отправить сообщение админу {admin_id} о создании заявки ботом администратору: {e}"
                 )
                 pass
 
@@ -330,12 +348,15 @@ async def approve_form_callback(
 
     except Exception as e:
         # Логируем ошибку и отправляем пользователю сообщение о сбое
-        logger.error(f"Ошибка при обработке запроса: {e}")
+        logger.error(f"Ошибка при обработке запроса по созданию кастомного вороса: {e}")
         await call.message.answer("Произошла ошибка. Попробуйте снова.")
 
 
 @other_router.message(F.text, OtherHandler.age)
 @other_router.message(F.text, OtherHandler.resident)
 async def mistakes_handler_faq(message: Message, state: FSMContext) -> None:
-        await mistakes_handler(message=message, bot=bot, state=state, )
-
+    await mistakes_handler(
+        message=message,
+        bot=bot,
+        state=state,
+    )

@@ -113,18 +113,22 @@ logger.remove()
 
 # Глобальная конфигурация extra (но она не будет работать, если bind не передаст данные)
 # logger.configure(extra={"ip": "-", "user": "-", "filename": "-"})
-logger.configure(extra={"user": "-", })
+logger.configure(
+    extra={
+        "user": "-",
+    }
+)
 # TODO установи адекватный уровень логирования
 # Настройка логирования для stdout (Только если есть user или filename)
 logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-           "<level>{level:^8}</level> - "
-           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-           "<yellow>{function}</yellow> - "
-           "<white>{message}</white>"
-           "<magenta>{extra[user]:^10}</magenta>",
+    "<level>{level:^8}</level> - "
+    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+    "<yellow>{function}</yellow> - "
+    "<white>{message}</white>"
+    "<magenta>{extra[user]:^10}</magenta>",
     # filter=lambda record: user_filter(record) or filename_filter(record),
     filter=user_filter,
     catch=True,
@@ -138,10 +142,10 @@ logger.add(
     sys.stdout,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-           "<level>{level:^8}</level> - "
-           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-           "<yellow>{function}</yellow> - "
-           "<white>{message}</white>",
+    "<level>{level:^8}</level> - "
+    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+    "<yellow>{function}</yellow> - "
+    "<white>{message}</white>",
     filter=default_filter,  # Показывает только если нет extra["user"] и extra["filename"]
     catch=True,
     diagnose=True,
@@ -156,10 +160,10 @@ logger.add(
     log_file_path,
     level="DEBUG",
     format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> - "
-           "<level>{level:^8}</level> - "
-           "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
-           "<yellow>{function}</yellow> - "
-           "<white>{message}</white>",
+    "<level>{level:^8}</level> - "
+    "<cyan>{name}</cyan>:<magenta>{line}</magenta> - "
+    "<yellow>{function}</yellow> - "
+    "<white>{message}</white>",
     # "<magenta>{extra[user]:^10}</magenta>",
     rotation="1 day",
     retention="7 days",

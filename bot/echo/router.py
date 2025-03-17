@@ -38,7 +38,7 @@ async def echo_start(message: Message, **kwargs) -> None:
     except Exception as e:
         # Логируем ошибку
         logger.error(
-            f"Ошибка при обработке сообщения от пользователя {message.from_user.id}: {e}"
+            f"Ошибка при обработке сообщения от пользователя {message.from_user.id} на echo: {e}"
         )
 
         # Отправляем сообщение пользователю о том, что произошла ошибка

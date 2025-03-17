@@ -9,6 +9,7 @@ from bot.echo.router import echo_router
 from bot.faq.router import faq_router
 from bot.help.router import help_router
 from bot.other_handler.router import other_router
+from bot.payments.router import payment_router
 from bot.users.router import user_router
 from bot.utils.commands import set_bot_commands
 from bot.utils.set_description_file import set_description
@@ -72,6 +73,8 @@ async def main():
     dp.include_router(faq_router)
 
     dp.include_router(admin_router)
+
+    dp.include_router(payment_router)
     dp.include_router(echo_router)
 
     # регистрация функций
