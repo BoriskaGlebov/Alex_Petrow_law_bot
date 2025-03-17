@@ -48,6 +48,5 @@ async def set_bot_commands() -> None:
                 logger.bind(user=admin_id).error(
                     f"⚠️  Ошибка: у администратора {admin_id} не начат чат с ботом."
                 )
-                # print(f"⚠️  Ошибка: у администратора {admin_id} не начат чат с ботом.")
             else:
                 raise  # Пробрасываем другие ошибки

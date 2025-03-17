@@ -36,6 +36,16 @@ class UserModel(TelegramIDModel):
 
 
 class UpdateNumberSchema(BaseModel):
+    """
+       Схема для обновления номера телефона.
+
+       Поддерживает два формата ввода:
+       - `+7XXXXXXXXXX` (например, `+71234567890`)
+       - `8XXXXXXXXXX` (например, `81234567890`), который будет преобразован в `+7XXXXXXXXXX`.
+
+       Attributes:
+           phone_number (Optional[str]): Номер телефона в международном формате.
+       """
     phone_number: Optional[str] = Field(
         None,
         description="Номер телефона пользователя в международном формате (+71234567890), поддерживает форматы: +7XXXXXXXXXX или 8XXXXXXXXXX",

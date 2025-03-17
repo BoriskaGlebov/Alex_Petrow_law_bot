@@ -84,6 +84,8 @@ services:
 #    #      - REDIS_PASSWORD=${REDIS_PASSWORD}
 #    ports:
 #      - "8000:8000"  # Если у вас используется HTTP сервер (например, FastAPI)
+#    volumes:
+#      - ./bot/logs:/Alex_Petrow_law_bot/bot/logs
 #    depends_on:
 #      - db
 #      - redis
@@ -96,7 +98,7 @@ services:
 #          memory: 128M
 #    networks:
 #      - monitoring_net
-
+#
 volumes:
   pg_data:
     name: bot_db

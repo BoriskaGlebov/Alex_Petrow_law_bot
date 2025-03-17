@@ -21,7 +21,7 @@ from bot.users.dao import UserDAO
 from bot.users.keyboards.inline_kb import approve_keyboard
 from bot.users.keyboards.markup_kb import main_kb
 from bot.users.schemas import TelegramIDModel
-from bot.users.utils import age_callback, resident_callback, mistakes_handler
+from bot.users.utils import age_callback, mistakes_handler, resident_callback
 
 other_router = Router()
 

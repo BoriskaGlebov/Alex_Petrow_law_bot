@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import List, Optional
+from typing import List
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     BOT_TOKEN: str
     ADMIN_IDS: List[int]
 
-    BASE_DIR: Optional[str] = None
+    # BASE_DIR: Optional[str] = None
 
     REDIS_LOGIN: str
     REDIS_PASSWORD: SecretStr
@@ -76,7 +76,7 @@ settings = Settings()
 storage = RedisStorage.from_url(settings.get_redis_url())
 
 # Инициализируем бота и диспетчер
-bot:Bot = Bot(
+bot: Bot = Bot(
     token=settings.BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 # Это если работать без Redis
@@ -105,6 +105,9 @@ def default_filter(record: dict) -> bool:
         return not record["extra"].get("user")
 
 
+log_dir = os.path.join(os.path.dirname(__file__), "logs")
+if not os.path.exists(log_dir):
+    os.mkdir(log_dir)
 # Удаляем все существующие обработчики
 logger.remove()
 
@@ -146,7 +149,8 @@ logger.add(
 )
 
 # Настройка логирования в файл (Только если есть filename)
-log_file_path = os.path.join(settings.BASE_DIR or ".", "file.log")
+# log_file_path = os.path.join(settings.BASE_DIR or ".", "file.log")
+log_file_path = os.path.join(log_dir or ".", "file.log")
 # TODO установи адекватный уровень логирования
 logger.add(
     log_file_path,
@@ -168,7 +172,8 @@ logger.add(
 
 # Тестирование фильтров
 if __name__ == "__main__":
-    logger.info("Лог без bind (должен попасть в stdout без фильтра и в файл)")
-    logger.bind(user="boris").info("Лог с user (должен попасть в stdout с user-фильтром)")
-    logger.bind(user="boris").info("Лог с user и filename (stdout и файл)")
-    logger.bind(user="").info("Лог с пустым user (должен попасть в файл, но не в stdout с user-фильтром)")
+    # logger.info("Лог без bind (должен попасть в stdout без фильтра и в файл)")
+    # logger.bind(user="boris").info("Лог с user (должен попасть в stdout с user-фильтром)")
+    # logger.bind(user="boris").info("Лог с user и filename (stdout и файл)")
+    # logger.bind(user="").info("Лог с пустым user (должен попасть в файл, но не в stdout с user-фильтром)")
+    print(log_dir)
