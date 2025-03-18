@@ -197,7 +197,7 @@ async def age_callback(call: CallbackQuery, state: FSMContext) -> None:
                 await state.update_data(age=approve_inf)
                 await bot.send_message(
                     chat_id=call.message.chat.id,
-                    text="Вы являетесь налоговым резидентом Российской Федерации?🇷🇺",
+                    text="Вы являетесь гражданином Российской Федерации?🇷🇺",
                     reply_markup=approve_keyboard("Да", "Нет"),
                 )
                 await state.set_state(CheckForm.resident)
@@ -255,7 +255,7 @@ async def resident_callback(call: CallbackQuery, state: FSMContext) -> None:
                 await state.clear()
                 await bot.send_message(
                     chat_id=call.message.chat.id,
-                    text="К сожалению, мы 🧑‍🎓 не работаем с налоговыми резидентами других стран.",
+                    text="К сожалению, мы 🧑‍🎓 не можем оказать услуги иностранным гражданам.",
                 )
 
     except Exception as e:
