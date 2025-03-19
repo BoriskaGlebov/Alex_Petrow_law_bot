@@ -12,7 +12,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
       TZ: Europe/Moscow
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
       #      - ./pg_logs/:/var/lib/postgresql/logs # Подключение папки для логов,в будущем можно подключить в хранилище докера
@@ -45,7 +45,7 @@ services:
     restart: always
     command: redis-server /usr/local/etc/redis/redis.conf --replicaof no one
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf
@@ -73,11 +73,19 @@ services:
     image: ngrok/ngrok
     restart: always
     ports:
-      - "4040:4040" # Порт для веб-интерфейса Ngrok
-    command: http 8000 # Проброс трафика на порт 8000 вашего приложения
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN} # Токен авторизации Ngrok
-      - NGROK_REGION=${NGROK_REGION} # Регион серверов Ngrok
+      - "127.0.0.1:8000:8000"  # Если у вас используется HTTP сервер (например, FastAPI)
+    depends_on:
+      - db
+      - redis
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    networks:
+      - monitoring_net
 
 #  bot:
 #    build:
