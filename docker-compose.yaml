@@ -68,6 +68,17 @@ services:
     networks:
       - monitoring_net
 
+  ngrok:
+    container_name: ngrok_container
+    image: ngrok/ngrok
+    restart: always
+    ports:
+      - "4040:4040" # Порт для веб-интерфейса Ngrok
+    command: http 8000 # Проброс трафика на порт 8000 вашего приложения
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN} # Токен авторизации Ngrok
+      - NGROK_REGION=${NGROK_REGION} # Регион серверов Ngrok
+
 #  bot:
 #    build:
 #      context: .  # Контекст указывает на корень проекта
